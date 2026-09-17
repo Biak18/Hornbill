@@ -1,8 +1,7 @@
-// Search home (polished `.screen-home` / `.screen-results`):
-// brand mark + greeting, static direction pill (direction swap ships with
-// English→Falam later — no dead swap control), search field with clear,
-// recent lookups. Typing swaps the body to a results view with the query
-// title and an honest local count.
+// Search home (polished): direction toggle, search field, diacritic keys
+// for Falam input, recent lookups. Typing swaps the body to a results view
+// with the query title and an honest local count. Both directions search
+// the same local dataset — Falam words or English meanings.
 
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -20,13 +19,19 @@ import { EntryRow } from "@/components/entry-row";
 import { Screen } from "@/components/screen";
 import { ThemedText } from "@/components/themed-text";
 import { dictionaryRepository } from "@/repositories";
-import { searchDictionary } from "@/services/search";
+import { searchDictionary, type SearchDirection } from "@/services/search";
 import { useHistory } from "@/stores/history";
 import { radius, spacing, useAppColors } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
 
+const DIACRITICS = ["â", "ē", "ī", "ō", "ū"] as const;
 const SEARCH_LIMIT = 20;
 const RECENT_LIMIT = 5;
+
+const DIRECTIONS: readonly { value: SearchDirection; label: string }[] = [
+  { value: "falam-en", label: "Falam → English" },
+  { value: "en-falam", label: "English → Falam" },
+];
 
 function firstMeaning(entry: DictionaryEntry): string {
   return entry.definitions[0]?.english ?? "";
@@ -36,6 +41,7 @@ export default function SearchScreen() {
   const colors = useAppColors();
   const { push } = useRouter();
   const [query, setQuery] = useState("");
+  const [direction, setDirection] = useState<SearchDirection>("falam-en");
   const { historyIds, clear } = useHistory();
   const inputRef = useRef<TextInput>(null);
 
@@ -45,6 +51,7 @@ export default function SearchScreen() {
         results: searchDictionary(query, {
           repository: dictionaryRepository,
           limit: SEARCH_LIMIT,
+          direction,
         }),
         errorMessage: null as string | null,
       };
@@ -54,7 +61,7 @@ export default function SearchScreen() {
         errorMessage: "Search failed. Try again.",
       };
     }
-  }, [query]);
+  }, [query, direction]);
 
   const recentEntries = useMemo(
     () =>
@@ -77,8 +84,14 @@ export default function SearchScreen() {
     inputRef.current?.focus();
   }, []);
 
+  const appendDiacritic = useCallback((mark: string) => {
+    setQuery((prev) => prev + mark);
+    inputRef.current?.focus();
+  }, []);
+
   const trimmed = query.trim();
   const isBlank = trimmed.length === 0;
+  const searchingEnglish = direction === "en-falam";
 
   let body: ReactNode;
   if (errorMessage !== null) {
@@ -96,11 +109,7 @@ export default function SearchScreen() {
           onPress={clearQuery}
           style={styles.backline}
         >
-          <MaterialIcons
-            name="arrow-back"
-            size={18}
-            color={colors.muted}
-          />
+          <MaterialIcons name="arrow-back" size={18} color={colors.muted} />
           <ThemedText variant="bodySm" tone="secondary">
             Search
           </ThemedText>
@@ -172,41 +181,36 @@ export default function SearchScreen() {
 
   return (
     <Screen>
-      {isBlank ? (
-        <View style={styles.homeHead}>
-          <View style={styles.appTitle}>
-            <View style={[styles.mark, { backgroundColor: colors.accent }]}>
-              <ThemedText variant="label" tone="onAccent">
-                F
-              </ThemedText>
-            </View>
-            <ThemedText variant="label">Falam Dictionary</ThemedText>
-          </View>
-          <ThemedText variant="greeting">Find the word{"\n"}you mean.</ThemedText>
-          <ThemedText variant="bodySm" tone="secondary">
-            A quick reference for Falam to English.
-          </ThemedText>
-          <View
-            style={[styles.direction, { backgroundColor: colors.accentSoft }]}
-          >
-            <ThemedText variant="label" tone="accent">
-              Falam
-            </ThemedText>
-            <MaterialIcons name="arrow-forward" size={16} color={colors.accent} />
-            <ThemedText variant="label" tone="accent">
-              English
-            </ThemedText>
-          </View>
+      <View style={styles.topBlock}>
+        <View style={[styles.segmented, { backgroundColor: colors.paper }]}>
+          {DIRECTIONS.map((option) => {
+            const active = direction === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityLabel={`Search ${option.label}`}
+                accessibilityState={{ selected: active }}
+                onPress={() => setDirection(option.value)}
+                style={[
+                  styles.directionOption,
+                  active ? { backgroundColor: colors.surface } : null,
+                ]}
+              >
+                <ThemedText
+                  variant="label"
+                  tone={active ? "accent" : "secondary"}
+                >
+                  {option.label}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
         </View>
-      ) : null}
-      <View style={styles.searchWrap}>
         <View
           style={[
             styles.searchField,
-            {
-              backgroundColor: colors.paper,
-              borderColor: colors.line,
-            },
+            { backgroundColor: colors.paper, borderColor: colors.line },
           ]}
         >
           <MaterialIcons name="search" size={22} color={colors.accent} />
@@ -214,7 +218,11 @@ export default function SearchScreen() {
             ref={inputRef}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search a Falam word"
+            placeholder={
+              searchingEnglish
+                ? "Search an English meaning"
+                : "Search a Falam word"
+            }
             placeholderTextColor={colors.muted2 as string}
             autoCorrect={false}
             autoCapitalize="none"
@@ -233,6 +241,26 @@ export default function SearchScreen() {
             </Pressable>
           ) : null}
         </View>
+        {searchingEnglish ? null : (
+          <View style={styles.diacriticRow}>
+            <ThemedText variant="labelSm" tone="faint">
+              Tones:
+            </ThemedText>
+            {DIACRITICS.map((mark) => (
+              <Pressable
+                key={mark}
+                accessibilityRole="button"
+                accessibilityLabel={`Insert ${mark}`}
+                onPress={() => appendDiacritic(mark)}
+                style={styles.diacriticKey}
+              >
+                <ThemedText variant="body" tone="accent">
+                  {mark}
+                </ThemedText>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
       <View style={styles.body}>{body}</View>
     </Screen>
@@ -240,38 +268,24 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  homeHead: {
+  topBlock: {
     gap: spacing.sm,
-    paddingBottom: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
   },
-  appTitle: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  mark: {
-    alignItems: "center",
-    borderRadius: 10,
-    borderCurve: "continuous",
-    height: 31,
-    justifyContent: "center",
-    width: 31,
-  },
-  direction: {
-    alignItems: "center",
-    alignSelf: "flex-start",
-    borderRadius: radius.full,
+  segmented: {
+    borderRadius: 11,
     borderCurve: "continuous",
     flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    gap: 2,
+    padding: 3,
   },
-  searchWrap: {
-    paddingHorizontal: spacing.lg,
+  directionOption: {
+    alignItems: "center",
+    borderRadius: 8,
+    borderCurve: "continuous",
+    flex: 1,
+    paddingVertical: spacing.sm,
   },
   searchField: {
     alignItems: "center",
@@ -288,6 +302,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   clearSearch: {
+    padding: spacing.xs,
+  },
+  diacriticRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  diacriticKey: {
     padding: spacing.xs,
   },
   body: {

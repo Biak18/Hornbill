@@ -1,14 +1,10 @@
 // Entry detail (polished `.screen-entry`):
-// backline + save heart, huge Noto headword, pronunciation, peach-dot POS,
+// save heart, huge Noto headword, pronunciation, peach-dot POS,
 // audio pill (honest unavailable state until the Phase 4 engine lands),
 // per-sense meaning blocks with example cards, tappable related chips that
 // resolve to real entries, honest source line. Only rendered chips navigate
 // — unresolvable references are filtered out, never dead.
 
-import { useCallback, useEffect, useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Screen } from "@/components/screen";
 import { ThemedText } from "@/components/themed-text";
 import { dictionaryRepository } from "@/repositories";
@@ -16,6 +12,10 @@ import { useFavorites } from "@/stores/favorites";
 import { useHistory } from "@/stores/history";
 import { radius, spacing, useAppColors } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 function ResolvedChips({
   title,
@@ -62,7 +62,7 @@ function ResolvedChips({
 export default function EntryScreen() {
   const colors = useAppColors();
   const params = useLocalSearchParams<{ id: string }>();
-  const { back, push } = useRouter();
+  const { push } = useRouter();
   const rawId = params.id;
   const entry =
     typeof rawId === "string"
@@ -87,21 +87,10 @@ export default function EntryScreen() {
   if (entry === undefined) {
     return (
       <Screen style={styles.center}>
-        <Stack.Screen options={{ title: "Not found" }} />
         <ThemedText variant="label">Entry not found</ThemedText>
         <ThemedText variant="bodySm" tone="secondary">
           It may have been removed from the dataset.
         </ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={back}
-          style={styles.backLink}
-        >
-          <ThemedText variant="label" tone="accent">
-            Go back
-          </ThemedText>
-        </Pressable>
       </Screen>
     );
   }
@@ -112,19 +101,7 @@ export default function EntryScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <Stack.Screen options={{ title: entry.word }} />
-        <View style={styles.topline}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            onPress={back}
-            style={styles.backline}
-          >
-            <MaterialIcons name="arrow-back" size={18} color={colors.muted} />
-            <ThemedText variant="bodySm" tone="secondary">
-              Back
-            </ThemedText>
-          </Pressable>
+        <View style={styles.actionsRow}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={
@@ -154,7 +131,9 @@ export default function EntryScreen() {
           ) : null}
           {entry.partOfSpeech ? (
             <View style={styles.posRow}>
-              <View style={[styles.posDot, { backgroundColor: colors.peach }]} />
+              <View
+                style={[styles.posDot, { backgroundColor: colors.peach }]}
+              />
               <ThemedText variant="label" tone="accent">
                 {entry.partOfSpeech}
               </ThemedText>
@@ -168,11 +147,7 @@ export default function EntryScreen() {
               disabled
               style={[styles.audioPill, { backgroundColor: colors.surface2 }]}
             >
-              <MaterialIcons
-                name="volume-off"
-                size={18}
-                color={colors.muted}
-              />
+              <MaterialIcons name="volume-off" size={18} color={colors.muted} />
               <ThemedText variant="label" tone="secondary">
                 Audio unavailable
               </ThemedText>
@@ -192,17 +167,16 @@ export default function EntryScreen() {
                 {sense.examples.map((example) => (
                   <View
                     key={`${sense.id}-${example.falam}-${example.english}`}
-                    style={[
-                      styles.example,
-                      { backgroundColor: colors.paper },
-                    ]}
+                    style={[styles.example, { backgroundColor: colors.paper }]}
                   >
                     <ThemedText variant="exampleFal" selectable>
                       {example.falam}
                     </ThemedText>
-                    <ThemedText variant="bodySm" tone="secondary">
-                      {example.english}
-                    </ThemedText>
+                    {example.english ? (
+                      <ThemedText variant="bodySm" tone="secondary">
+                        {example.english}
+                      </ThemedText>
+                    ) : null}
                   </View>
                 ))}
               </View>
@@ -214,7 +188,7 @@ export default function EntryScreen() {
             STATUS
           </ThemedText>
           <ThemedText variant="bodySm" tone="secondary">
-            Draft placeholder · not verified linguistic data
+            Draft · contributed wordlist, awaiting verification
           </ThemedText>
         </View>
         {entry.synonyms ? (
@@ -256,19 +230,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: spacing.lg,
   },
-  backLink: {
-    padding: spacing.sm,
-  },
-  topline: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  backline: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
+  actionsRow: {
+    alignItems: "flex-end",
   },
   saveButton: {
     padding: spacing.xs,

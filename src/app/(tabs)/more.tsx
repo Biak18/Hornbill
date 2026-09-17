@@ -134,7 +134,10 @@ export default function MoreScreen() {
         <ThemedText variant="eyebrow" tone="secondary">
           LANGUAGE
         </ThemedText>
-        <SettingRow name="Dictionary direction" detail="Falam to English" />
+        <SettingRow
+          name="Dictionary direction"
+          detail="Falam ⇄ English · switch on Search"
+        />
         <ThemedText variant="eyebrow" tone="secondary">
           AUDIO
         </ThemedText>
@@ -165,7 +168,7 @@ export default function MoreScreen() {
         </ThemedText>
         <SettingRow
           name="Dictionary information"
-          detail="Placeholder dataset · unverified entries"
+          detail="User-contributed words · unverified drafts"
         />
         <SettingRow name="Version" detail="1.0.0 · offline edition" />
       </ScrollView>

@@ -15,6 +15,7 @@ export type SearchEntriesOptions = {
 export interface DictionaryRepository {
   getEntryById(id: string): DictionaryEntry | undefined;
   /**
+   * Falam → English: match `normalizedQuery` against entry search keys.
    * `normalizedQuery` must already be normalized (see search service).
    * Ranking: exact → prefix → substring, then alphabetical by `word`.
    */
@@ -22,15 +23,44 @@ export interface DictionaryRepository {
     normalizedQuery: string,
     options?: SearchEntriesOptions,
   ): DictionaryEntry[];
+  /**
+   * English → Falam: match `normalizedQuery` against English definitions.
+   * Best-matching sense decides the entry rank; same ordering as above.
+   */
+  searchEntriesByMeaning(
+    normalizedQuery: string,
+    options?: SearchEntriesOptions,
+  ): DictionaryEntry[];
 }
 
 const DEFAULT_LIMIT = 20;
 
-function rankEntry(searchKey: string, query: string): number {
-  if (searchKey === query) return 0;
-  if (searchKey.startsWith(query)) return 1;
-  if (searchKey.includes(query)) return 2;
+function rankText(haystack: string, query: string): number {
+  if (haystack === query) return 0;
+  if (haystack.startsWith(query)) return 1;
+  if (haystack.includes(query)) return 2;
   return 3;
+}
+
+function bestMeaningRank(entry: DictionaryEntry, query: string): number {
+  let best = 3;
+  for (const definition of entry.definitions) {
+    const rank = rankText(normalizeSearchKey(definition.english), query);
+    if (rank < best) {
+      best = rank;
+      if (best === 0) break;
+    }
+  }
+  return best;
+}
+
+function paginate(
+  entries: DictionaryEntry[],
+  options?: SearchEntriesOptions,
+): DictionaryEntry[] {
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+  return entries.slice(offset, offset + limit);
 }
 
 export function createInMemoryDictionaryRepository(
@@ -51,18 +81,37 @@ export function createInMemoryDictionaryRepository(
     },
     searchEntries(normalizedQuery, options) {
       if (normalizedQuery.length === 0) return [];
-      const limit = options?.limit ?? DEFAULT_LIMIT;
-      const offset = options?.offset ?? 0;
-      return entries
-        .filter((entry) => rankEntry(entry.searchKey, normalizedQuery) < 3)
-        .sort((a, b) => {
-          const rankDiff =
-            rankEntry(a.searchKey, normalizedQuery) -
-            rankEntry(b.searchKey, normalizedQuery);
-          if (rankDiff !== 0) return rankDiff;
-          return a.word.localeCompare(b.word);
-        })
-        .slice(offset, offset + limit);
+      return paginate(
+        entries
+          .filter(
+            (entry) => rankText(entry.searchKey, normalizedQuery) < 3,
+          )
+          .sort((a, b) => {
+            const rankDiff =
+              rankText(a.searchKey, normalizedQuery) -
+              rankText(b.searchKey, normalizedQuery);
+            if (rankDiff !== 0) return rankDiff;
+            return a.word.localeCompare(b.word);
+          }),
+        options,
+      );
+    },
+    searchEntriesByMeaning(normalizedQuery, options) {
+      if (normalizedQuery.length === 0) return [];
+      return paginate(
+        entries
+          .filter(
+            (entry) => bestMeaningRank(entry, normalizedQuery) < 3,
+          )
+          .sort((a, b) => {
+            const rankDiff =
+              bestMeaningRank(a, normalizedQuery) -
+              bestMeaningRank(b, normalizedQuery);
+            if (rankDiff !== 0) return rankDiff;
+            return a.word.localeCompare(b.word);
+          }),
+        options,
+      );
     },
   };
 }

@@ -7,10 +7,13 @@ import type { DictionaryEntry } from "@/types/dictionary";
 import type { DictionaryRepository } from "@/repositories/dictionary-repository";
 import { normalizeSearchKey } from "@/utils/normalize";
 
+export type SearchDirection = "falam-en" | "en-falam";
+
 export type SearchDictionaryOptions = {
   limit?: number;
   offset?: number;
   repository: DictionaryRepository;
+  direction?: SearchDirection;
 };
 
 export function searchDictionary(
@@ -21,8 +24,12 @@ export function searchDictionary(
   // Blank query → no results. Never a full-table scan: the dataset may grow
   // to 1M+ entries (AGENTS.md §24/28).
   if (normalized.length === 0) return [];
-  return options.repository.searchEntries(normalized, {
-    limit: options.limit,
-    offset: options.offset,
-  });
+  const searchOptions = { limit: options.limit, offset: options.offset };
+  if ((options.direction ?? "falam-en") === "en-falam") {
+    return options.repository.searchEntriesByMeaning(
+      normalized,
+      searchOptions,
+    );
+  }
+  return options.repository.searchEntries(normalized, searchOptions);
 }

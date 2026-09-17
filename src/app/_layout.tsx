@@ -1,7 +1,7 @@
 // Root layout: fonts gate the splash screen, then providers + root stack.
-// Tabs live in "(tabs)"; entry detail pushes above them with a native header.
-// Note: native navigator chrome follows the OS scheme; app content follows
-// the stored theme preference via `useAppColors()`.
+// Tabs live in "(tabs)"; entry detail pushes above them. All header chrome
+// is configured here exactly once — screens stay plain Views and never
+// touch Stack.Screen.
 
 import { useEffect } from "react";
 import {
@@ -16,9 +16,24 @@ import { AudioSettingsProvider } from "@/stores/audio-settings";
 import { FavoritesProvider } from "@/stores/favorites";
 import { HistoryProvider } from "@/stores/history";
 import { ThemePreferenceProvider } from "@/stores/theme-preference";
-import { useAppFonts } from "@/theme";
+import { useAppColors, useAppFonts } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
+
+function RootStack() {
+  const colors = useAppColors();
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.surface },
+        headerShadowVisible: false,
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="entry/[id]" options={{ title: "Entry" }} />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -40,10 +55,7 @@ export default function RootLayout() {
         <AudioSettingsProvider>
           <FavoritesProvider>
             <HistoryProvider>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="entry/[id]" options={{ title: "Entry" }} />
-              </Stack>
+              <RootStack />
             </HistoryProvider>
           </FavoritesProvider>
         </AudioSettingsProvider>
