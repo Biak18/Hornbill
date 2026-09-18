@@ -38,14 +38,15 @@ export interface DictionaryRepository {
 
 const DEFAULT_LIMIT = 20;
 
-function rankText(haystack: string, query: string): number {
+/** Shared ranking (0 exact, 1 prefix, 2 substring, 3 no match). */
+export function rankText(haystack: string, query: string): number {
   if (haystack === query) return 0;
   if (haystack.startsWith(query)) return 1;
   if (haystack.includes(query)) return 2;
   return 3;
 }
 
-function bestMeaningRank(entry: DictionaryEntry, query: string): number {
+export function bestMeaningRank(entry: DictionaryEntry, query: string): number {
   let best = 3;
   for (const definition of entry.definitions) {
     const rank = rankText(normalizeSearchKey(definition.english), query);
@@ -57,7 +58,7 @@ function bestMeaningRank(entry: DictionaryEntry, query: string): number {
   return best;
 }
 
-function paginate(
+export function paginate(
   entries: DictionaryEntry[],
   options?: SearchEntriesOptions,
 ): DictionaryEntry[] {

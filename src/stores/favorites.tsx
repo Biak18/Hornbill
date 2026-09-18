@@ -1,6 +1,6 @@
-// Session-only favorites store (PRD.md §5: no account for basic feature).
-// References entry IDs only and works offline. Persistence moves to SQLite
-// with the repository layer later; the hook API stays the same.
+// Favorites store (PRD.md §5: no account for basic feature).
+// References entry IDs only, works offline, and persists to SQLite so the
+// wordbook survives restarts. The hook API is unchanged from session-only.
 
 import {
   createContext,
@@ -10,6 +10,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {
+  deleteFavorite,
+  insertFavorite,
+  loadFavoriteIds,
+} from "@/database/user-data";
 
 type FavoritesContextValue = {
   favoriteIds: ReadonlySet<string>;
@@ -20,15 +25,21 @@ type FavoritesContextValue = {
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
 
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const [favoriteIds, setFavoriteIds] = useState<ReadonlySet<string>>(new Set());
+  const [favoriteIds, setFavoriteIds] = useState<ReadonlySet<string>>(
+    () => new Set(loadFavoriteIds()),
+  );
 
   const toggleFavorite = useCallback((id: string) => {
     setFavoriteIds((prev) => {
       const next = new Set(prev);
+      // Writes are idempotent by key, so state-updater retries cannot
+      // corrupt the table (dev StrictMode double-invokes updaters).
       if (next.has(id)) {
         next.delete(id);
+        deleteFavorite(id);
       } else {
         next.add(id);
+        insertFavorite(id);
       }
       return next;
     });

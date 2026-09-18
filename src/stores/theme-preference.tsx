@@ -1,6 +1,6 @@
 // Appearance preference: system / light / dark (More → Appearance).
-// Session-only; persistence moves to SQLite later. `useAppColors()` reads
-// this, falling back to the OS scheme on "system".
+// Persists to SQLite. `useAppColors()` reads this, falling back to the OS
+// scheme on "system".
 
 import {
   createContext,
@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { readSetting, writeSetting } from "@/database/database";
 
 export type ThemePreference = "system" | "light" | "dark";
 
@@ -21,14 +22,23 @@ type ThemePreferenceContextValue = {
 const ThemePreferenceContext =
   createContext<ThemePreferenceContextValue | null>(null);
 
+const THEME_KEY = "themePreference";
+
+function loadPreference(): ThemePreference {
+  const stored = readSetting(THEME_KEY, "system");
+  return stored === "light" || stored === "dark" ? stored : "system";
+}
+
 export function ThemePreferenceProvider({
   children,
 }: {
   children: ReactNode;
 }) {
-  const [preference, setPreference] = useState<ThemePreference>("system");
+  const [preference, setPreference] =
+    useState<ThemePreference>(loadPreference);
 
   const set = useCallback((next: ThemePreference) => {
+    writeSetting(THEME_KEY, next);
     setPreference(next);
   }, []);
 

@@ -1,9 +1,10 @@
 // Shared repository instance (module scope, created once).
-// Seeded with synthetic placeholders; the expo-sqlite implementation will
-// replace `createInMemoryDictionaryRepository` here without touching callers.
+// expo-sqlite implementation over the local database (docs/ARCHITECTURE.md
+// §5, AGENTS.md §23-24). The in-memory implementation remains for tests.
+// The database seeds from the user-contributed DRAFT wordlist until Phase 1
+// verified imports replace the seed (see src/database/database.ts).
 
-import { placeholderEntries } from "@/mocks/placeholderEntries";
-import { createInMemoryDictionaryRepository } from "./dictionary-repository";
+import { db } from "@/database/database";
+import { createSqliteDictionaryRepository } from "./sqlite-repository";
 
-export const dictionaryRepository =
-  createInMemoryDictionaryRepository(placeholderEntries);
+export const dictionaryRepository = createSqliteDictionaryRepository(db);
