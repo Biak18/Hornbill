@@ -5,18 +5,28 @@
 // Skill: hoisted press callback (no inline closure), memoized pill style
 // (no inline object per render), ternary-with-null, strings in ThemedText.
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { ThemedText } from "@/components/themed-text";
 import { radius, spacing, useAppColors } from "@/theme";
 
-export function FalamAudioButton({ source }: { source: number }) {
+export function FalamAudioButton({
+  source,
+  onPlayingChange,
+}: {
+  source: number;
+  onPlayingChange?: (playing: boolean) => void;
+}) {
   const colors = useAppColors();
   const player = useAudioPlayer(source);
   const status = useAudioPlayerStatus(player);
   const playing = status.playing === true;
+
+  useEffect(() => {
+    onPlayingChange?.(playing);
+  }, [playing, onPlayingChange]);
 
   const handlePress = useCallback(async () => {
     if (playing) {

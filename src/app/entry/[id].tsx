@@ -22,7 +22,7 @@ import { radius, spacing, useAppColors } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   interpolate,
@@ -95,6 +95,11 @@ export default function EntryScreen() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { record } = useHistory();
   const { falamAudioEnabled } = useAudioSettings();
+  const [audioPlaying, setAudioPlaying] = useState(false);
+
+  const handlePlayingChange = useCallback((next: boolean) => {
+    setAudioPlaying(next);
+  }, []);
 
   // Scroll ground truth (shared value, never useState) for hero motion.
   const scrollY = useSharedValue(0);
@@ -227,7 +232,10 @@ export default function EntryScreen() {
               style={[styles.audioBar, { backgroundColor: colors.surface2 }]}
             >
               {canPlayAudio ? (
-                <FalamAudioButton source={audioSource as number} />
+                <FalamAudioButton
+                  source={audioSource as number}
+                  onPlayingChange={handlePlayingChange}
+                />
               ) : (
                 <View style={styles.audioNote}>
                   <MaterialIcons
@@ -242,7 +250,7 @@ export default function EntryScreen() {
                   </ThemedText>
                 </View>
               )}
-              <WaveBars color={colors.accent} />
+              <WaveBars color={colors.accent} active={audioPlaying} />
             </View>
           </View>
         </Animated.View>

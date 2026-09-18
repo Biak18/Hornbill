@@ -1,11 +1,13 @@
 // Direction pill — Stitch-inspired language switcher, our labels.
-// Centered pill: "Falam" | swap button | "English". The active source side
-// is highlighted; tapping swap flips the direction (query is preserved by
-// the caller). Primitives-only props for stable memoization.
+// Full-width tappable pill: source | prominent swap button | target, so the
+// control reads as one big switch rather than static text. Tapping anywhere
+// on the pill flips the direction with light haptic confirmation.
+// Primitives-only props for stable memoization.
 
 import { memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { ThemedText } from "./themed-text";
 import { useAppColors } from "@/theme/colors";
 import { radius, spacing } from "@/theme";
@@ -26,51 +28,69 @@ export const DirectionPill = memo(function DirectionPill({
   const targetLabel = falamFirst ? "English" : "Falam";
 
   const handleSwap = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onDirectionChange(falamFirst ? "en-falam" : "falam-en");
   }, [falamFirst, onDirectionChange]);
 
   return (
-    <View style={styles.center}>
-      <View style={[styles.pill, { backgroundColor: colors.paper }]}>
-        <ThemedText variant="label" tone="primary">
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Swap search direction, currently ${sourceLabel} to ${targetLabel}`}
+      accessibilityHint="Activates the opposite translation direction"
+      onPress={handleSwap}
+      style={({ pressed }) => [
+        styles.pill,
+        {
+          backgroundColor: colors.paper,
+          borderColor: colors.line,
+        },
+        pressed ? styles.pressed : null,
+      ]}
+    >
+      <View style={styles.side}>
+        <ThemedText variant="label" tone="primary" numberOfLines={1}>
           {sourceLabel}
         </ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Swap search direction, currently ${sourceLabel} to ${targetLabel}`}
-          onPress={handleSwap}
-          style={[styles.swap, { backgroundColor: colors.surface2 }]}
-        >
-          <MaterialIcons name="swap-horiz" size={18} color={colors.accent} />
-        </Pressable>
-        <ThemedText variant="label" tone="secondary">
+      </View>
+      <View style={[styles.swap, { backgroundColor: colors.accentSoft }]}>
+        <MaterialIcons name="swap-horiz" size={22} color={colors.accent} />
+      </View>
+      <View style={styles.side}>
+        <ThemedText variant="label" tone="secondary" numberOfLines={1}>
           {targetLabel}
         </ThemedText>
       </View>
-    </View>
+    </Pressable>
   );
 });
 
 const styles = StyleSheet.create({
-  center: {
-    alignItems: "center",
-  },
   pill: {
     alignItems: "center",
+    alignSelf: "stretch",
     borderRadius: radius.full,
     borderCurve: "continuous",
+    borderWidth: 1,
     flexDirection: "row",
-    gap: spacing.md,
+    gap: spacing.sm,
+    minHeight: 56,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
     boxShadow: "0 2px 8px rgba(12, 32, 27, 0.08)",
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  side: {
+    alignItems: "center",
+    flex: 1,
   },
   swap: {
     alignItems: "center",
     borderRadius: radius.full,
     borderCurve: "continuous",
-    height: 32,
+    height: 40,
     justifyContent: "center",
-    width: 32,
+    width: 40,
   },
 });

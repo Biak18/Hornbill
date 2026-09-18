@@ -1,14 +1,78 @@
-// Wave bars — small decorative audio glyph used beside audio controls
-// (Stitch detail/wordbook pattern). Static bars; the play state itself is
-// communicated by the adjacent audio button, so nothing here pretends to
-// be a live waveform. Color comes from props (no theme read per instance).
+// Wave bars — audio glyph used beside audio controls (Stitch
+// detail/wordbook pattern). Bars pulse while `active` (driven by the real
+// player status from the adjacent audio button) and rest flat otherwise.
+// GPU-only: per-bar scaleY on the UI thread via Reanimated; staggered with
+// withDelay. Color comes from props (no theme read per instance).
 
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import { StyleSheet, View } from "react-native";
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 const BAR_HEIGHTS = [6, 12, 18, 10] as const;
+const BAR_DELAYS = [0, 120, 240, 360] as const;
 
-export const WaveBars = memo(function WaveBars({ color }: { color: string }) {
+type AnimatedBarProps = {
+  color: string;
+  height: number;
+  delay: number;
+  active: boolean;
+};
+
+const AnimatedBar = memo(function AnimatedBar({
+  color,
+  height,
+  delay,
+  active,
+}: AnimatedBarProps) {
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    if (active) {
+      scale.set(
+        withDelay(
+          delay,
+          withRepeat(
+            withSequence(
+              withTiming(0.35, { duration: 280 }),
+              withTiming(1.3, { duration: 280 }),
+            ),
+            -1,
+            true,
+          ),
+        ),
+      );
+    } else {
+      cancelAnimation(scale);
+      scale.set(withTiming(1, { duration: 150 }));
+    }
+  }, [active, delay, scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleY: scale.get() }],
+  }));
+
+  return (
+    <Animated.View
+      style={[styles.bar, { backgroundColor: color, height }, animatedStyle]}
+    />
+  );
+});
+
+export const WaveBars = memo(function WaveBars({
+  color,
+  active = false,
+}: {
+  color: string;
+  active?: boolean;
+}) {
   return (
     <View
       aria-hidden
@@ -17,9 +81,12 @@ export const WaveBars = memo(function WaveBars({ color }: { color: string }) {
       style={styles.wrap}
     >
       {BAR_HEIGHTS.map((height, index) => (
-        <View
+        <AnimatedBar
           key={index}
-          style={[styles.bar, { backgroundColor: color, height }]}
+          color={color}
+          height={height}
+          delay={BAR_DELAYS[index] ?? 0}
+          active={active}
         />
       ))}
     </View>

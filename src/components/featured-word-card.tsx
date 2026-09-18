@@ -5,7 +5,7 @@
 // recording; the example box renders only verified dataset examples.
 // Tapping the card opens the full entry.
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Pressable as GesturePressable } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -40,6 +40,11 @@ export function FeaturedWordCard() {
 
   const entry = useMemo(() => pickFeatured(), []);
   const favorite = entry !== undefined && isFavorite(entry.id);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+
+  const handlePlayingChange = useCallback((next: boolean) => {
+    setAudioPlaying(next);
+  }, []);
 
   // Nested-press guard (see LookupRow): star/audio touches mark the time
   // at touch-down so the card ignores the press they consume.
@@ -132,7 +137,10 @@ export function FeaturedWordCard() {
       <View style={styles.audioRow}>
         {canPlayAudio ? (
           <View onTouchStart={markInnerPress}>
-            <FalamAudioButton source={audioSource as number} />
+            <FalamAudioButton
+              source={audioSource as number}
+              onPlayingChange={handlePlayingChange}
+            />
           </View>
         ) : (
           <View style={[styles.audioNote, { backgroundColor: colors.surface2 }]}>
@@ -142,7 +150,7 @@ export function FeaturedWordCard() {
             </ThemedText>
           </View>
         )}
-        <WaveBars color={colors.accent} />
+        <WaveBars color={colors.accent} active={audioPlaying} />
       </View>
       {firstSense !== undefined ? (
         <ThemedText variant="definition" selectable>
