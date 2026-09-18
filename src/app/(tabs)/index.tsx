@@ -22,7 +22,13 @@ import type { DictionaryEntry } from "@/types/dictionary";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputSelectionChangeEvent,
+} from "react-native";
 
 const DIACRITICS = ["â", "ē", "ī", "ō", "ū"] as const;
 const SEARCH_LIMIT = 20;
@@ -33,11 +39,21 @@ const DIRECTIONS: readonly { value: SearchDirection; label: string }[] = [
   { value: "en-falam", label: "English → Falam" },
 ];
 
+// Module scope: static empty state, identical element identity every render.
+const RecentEmpty = (
+  <EmptyState
+    icon="history"
+    title="No recent words"
+    copy="Your recent searches will appear here."
+  />
+);
+
 export default function SearchScreen() {
   const colors = useAppColors();
   const { push } = useRouter();
   const [query, setQuery] = useState("");
   const [direction, setDirection] = useState<SearchDirection>("falam-en");
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
   const { historyIds, clear } = useHistory();
   const inputRef = useRef<TextInput>(null);
 
@@ -78,19 +94,61 @@ export default function SearchScreen() {
 
   const clearQuery = useCallback(() => {
     setQuery("");
+    setSelection({ start: 0, end: 0 });
     inputRef.current?.focus();
   }, []);
 
-  const appendDiacritic = useCallback((mark: string) => {
-    setQuery((prev) => prev + mark);
-    inputRef.current?.focus();
-  }, []);
+  const handleSelectionChange = useCallback(
+    (e: TextInputSelectionChangeEvent) => {
+      setSelection(e.nativeEvent.selection);
+    },
+    [],
+  );
+
+  // Insert the tone mark at the caret (replacing any selected range),
+  // then park the caret right after it — never blindly appended at the end.
+  const insertDiacritic = useCallback(
+    (mark: string) => {
+      const start = Math.min(selection.start, query.length);
+      const end = Math.min(Math.max(selection.end, start), query.length);
+      setQuery(query.slice(0, start) + mark + query.slice(end));
+      const caret = start + mark.length;
+      setSelection({ start: caret, end: caret });
+      inputRef.current?.focus();
+    },
+    [query, selection],
+  );
 
   const trimmed = query.trim();
   const isBlank = trimmed.length === 0;
   const searchingEnglish = direction === "en-falam";
   const hasQuery = query.length > 0;
   const hasRecent = recentEntries.length > 0;
+
+  // Stable header identity: only rebuilt when its inputs change, so typing
+  // in the search field does not re-render the recents header.
+  const recentHeader = useMemo(
+    () => (
+      <View style={styles.sectionLabel}>
+        <ThemedText variant="eyebrow" tone="secondary">
+          RECENT
+        </ThemedText>
+        {hasRecent ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Clear recent searches"
+            onPress={clear}
+            style={styles.clearButton}
+          >
+            <ThemedText variant="label" tone="accent">
+              Clear
+            </ThemedText>
+          </Pressable>
+        ) : null}
+      </View>
+    ),
+    [hasRecent, clear],
+  );
 
   return (
     <Screen>
@@ -145,6 +203,8 @@ export default function SearchScreen() {
             ref={inputRef}
             value={query}
             onChangeText={setQuery}
+            selection={selection}
+            onSelectionChange={handleSelectionChange}
             placeholder={
               searchingEnglish
                 ? "Search an English meaning"
@@ -177,7 +237,7 @@ export default function SearchScreen() {
               <PressableScale
                 key={mark}
                 accessibilityLabel={`Insert ${mark}`}
-                onPress={() => appendDiacritic(mark)}
+                onPress={() => insertDiacritic(mark)}
                 style={styles.diacriticKey}
               >
                 <ThemedText variant="body" tone="accent">
@@ -234,32 +294,8 @@ export default function SearchScreen() {
               onPressEntry={handlePressEntry}
               icon="chevron"
               showPosTag={false}
-              ListHeaderComponent={
-                <View style={styles.sectionLabel}>
-                  <ThemedText variant="eyebrow" tone="secondary">
-                    RECENT
-                  </ThemedText>
-                  {hasRecent ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Clear recent searches"
-                      onPress={clear}
-                      style={styles.clearButton}
-                    >
-                      <ThemedText variant="label" tone="accent">
-                        Clear
-                      </ThemedText>
-                    </Pressable>
-                  ) : null}
-                </View>
-              }
-              ListEmptyComponent={
-                <EmptyState
-                  icon="history"
-                  title="No recent words"
-                  copy="Your recent searches will appear here."
-                />
-              }
+              ListHeaderComponent={recentHeader}
+              ListEmptyComponent={RecentEmpty}
             />
           </View>
         )}

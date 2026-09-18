@@ -36,6 +36,28 @@ export default function HistoryScreen() {
     [push],
   );
 
+  // Stable header identity: rebuilt only when `clear` changes.
+  const recentHeader = useMemo(
+    () => (
+      <View style={styles.sectionLabel}>
+        <ThemedText variant="eyebrow" tone="secondary">
+          RECENT
+        </ThemedText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Clear all history"
+          onPress={clear}
+          style={styles.clearButton}
+        >
+          <ThemedText variant="label" tone="accent">
+            Clear all
+          </ThemedText>
+        </Pressable>
+      </View>
+    ),
+    [clear],
+  );
+
   return (
     <Screen>
       <View style={styles.titleWrap}>
@@ -48,23 +70,7 @@ export default function HistoryScreen() {
             onPressEntry={handlePressEntry}
             icon="chevron"
             showPosTag={false}
-            ListHeaderComponent={
-              <View style={styles.sectionLabel}>
-                <ThemedText variant="eyebrow" tone="secondary">
-                  RECENT
-                </ThemedText>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Clear all history"
-                  onPress={clear}
-                  style={styles.clearButton}
-                >
-                  <ThemedText variant="label" tone="accent">
-                    Clear all
-                  </ThemedText>
-                </Pressable>
-              </View>
-            }
+            ListHeaderComponent={recentHeader}
           />
         </View>
       ) : (
