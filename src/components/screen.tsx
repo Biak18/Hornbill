@@ -1,7 +1,9 @@
-// Every screen root. SafeAreaView (react-native-safe-area-context) owns
-// notch/status/navigation insets on all platforms, so inner scrollables
-// must NOT also adjust insets — leave their default behavior alone or
-// content gets double-padded.
+// Every screen root. SafeAreaView owns the TOP inset only (notch/status)
+// so header chrome never sits under it. Bottom insets are left to the OS:
+// the first scrollable/list in each tab uses
+// contentInsetAdjustmentBehavior="automatic" (skill 9.4), and NativeTabs
+// owns the tab-bar inset — inner scrollables must NOT add manual
+// bottom padding or content gets double-padded.
 
 import type { ReactNode } from "react";
 import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
@@ -18,7 +20,7 @@ export function Screen({
   const colors = useAppColors();
   return (
     <SafeAreaView
-      edges={["top", "bottom"]}
+      edges={["top"]}
       style={[styles.screen, { backgroundColor: colors.surface }, style]}
     >
       {children}

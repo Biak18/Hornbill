@@ -1,7 +1,9 @@
-// Empty state (polished `.empty`): tinted icon tile, title, short copy,
-// optional action. Shared by favorites, history, and cleared recents.
+// Empty state: tinted icon tile, title, short copy, optional action.
+// Skill 9.2: gap on parent for spacing (no margin on children);
+// borderCurve continuous; boxShadow string syntax for the tile.
 
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ThemedText } from "./themed-text";
 import { useAppColors } from "@/theme/colors";
@@ -23,6 +25,10 @@ export function EmptyState({
   onAction,
 }: EmptyStateProps) {
   const colors = useAppColors();
+  const hasAction =
+    actionLabel !== undefined &&
+    actionLabel.length > 0 &&
+    onAction !== undefined;
   return (
     <View style={styles.wrap}>
       <View style={[styles.symbol, { backgroundColor: colors.accentSoft }]}>
@@ -32,10 +38,10 @@ export function EmptyState({
       <ThemedText variant="bodySm" tone="secondary" style={styles.copy}>
         {copy}
       </ThemedText>
-      {actionLabel && onAction ? (
+      {hasAction ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={actionLabel}
+          accessibilityLabel={actionLabel as string}
           onPress={onAction}
           style={[styles.action, { backgroundColor: colors.accentSoft }]}
         >
@@ -54,6 +60,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: spacing.lg,
+    gap: spacing.sm,
   },
   symbol: {
     alignItems: "center",
@@ -61,17 +68,16 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     height: 62,
     justifyContent: "center",
-    marginBottom: spacing.md,
     width: 62,
+    boxShadow: "0 2px 10px rgba(12, 32, 27, 0.10)",
   },
   copy: {
-    marginTop: spacing.sm,
     textAlign: "center",
   },
   action: {
     borderRadius: radius.full,
     borderCurve: "continuous",
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },

@@ -1,9 +1,15 @@
 // Virtualized dictionary list shared by search / favorites / history.
-// Stable key extractor and memoized row keep re-renders to changed items.
-// No inset adjustment here: the Screen (SafeAreaView) root already owns it.
+// Skill 2.6: FlashList (virtualizer) for every list — only visible rows mount.
+// - Stable module-scope keyExtractor (skill 2.4: stable references).
+// - renderItem passes primitives only; row memoizes on them (skills 2.1/2.5).
+// - Single onPressEntry instance flows to rows; rows call with id (skill 2.2).
+// - contentInsetAdjustmentBehavior="automatic": OS owns tab-bar/bottom
+//   insets natively (skill 9.4); no manual bottom padding here.
 
+import type { ComponentType, ReactElement } from "react";
 import { useCallback } from "react";
-import { FlatList, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { EntryRow, type RowIcon } from "./entry-row";
 import { spacing } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
@@ -20,6 +26,8 @@ type EntryListProps = {
   /** Results show a POS tag + arrow; recents show a meta line + chevron. */
   icon: RowIcon;
   showPosTag: boolean;
+  ListHeaderComponent?: ComponentType | ReactElement | null;
+  ListEmptyComponent?: ComponentType | ReactElement | null;
 };
 
 export function EntryList({
@@ -27,6 +35,8 @@ export function EntryList({
   onPressEntry,
   icon,
   showPosTag,
+  ListHeaderComponent,
+  ListEmptyComponent,
 }: EntryListProps) {
   const renderItem = useCallback(
     ({ item }: { item: DictionaryEntry }) => (
@@ -44,13 +54,16 @@ export function EntryList({
   );
 
   return (
-    <FlatList
+    <FlashList
       data={entries}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       keyboardShouldPersistTaps="handled"
+      contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.content}
       style={styles.list}
+      ListHeaderComponent={ListHeaderComponent}
+      ListEmptyComponent={ListEmptyComponent}
     />
   );
 }
@@ -60,7 +73,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: spacing.md,
     paddingHorizontal: spacing.md,
   },
 });

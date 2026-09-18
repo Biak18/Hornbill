@@ -1,10 +1,17 @@
-// More tab (polished settings): Appearance theme segmented control,
-// static dictionary direction, functional audio preference toggles, About.
-// Every control performs its action — static rows carry no chevron or press.
+// More tab — grouped settings cards. Original design, Papago-like clarity.
+// Skill rules:
+// - Card compound components (skill 10.1); gap spacing, borderCurve,
+//   boxShadow strings (skill 9.2).
+// - Toggle knob positions with transform translateX (GPU-only, skill 3.1) —
+//   never alignSelf/layout swaps. State is boolean ground truth; the
+//   derived offset is computed during render (skill 6.1).
+// - ScrollView root uses contentInsetAdjustmentBehavior automatic (9.4).
+// - Ternary-with-null; strings in ThemedText.
 
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Screen } from "@/components/screen";
 import { ThemedText } from "@/components/themed-text";
+import { Card } from "@/components/ui";
 import { useAudioSettings } from "@/stores/audio-settings";
 import {
   useThemePreference,
@@ -17,6 +24,8 @@ const THEME_OPTIONS: readonly ThemePreference[] = [
   "light",
   "dark",
 ];
+
+const KNOB_ON_X = 18;
 
 function ThemeSegmented() {
   const colors = useAppColors();
@@ -34,7 +43,12 @@ function ThemeSegmented() {
             onPress={() => setPreference(option)}
             style={[
               styles.themeOption,
-              active ? { backgroundColor: colors.surface } : null,
+              active
+                ? [
+                    styles.themeActive,
+                    { backgroundColor: colors.surface },
+                  ]
+                : null,
             ]}
           >
             <ThemedText
@@ -81,7 +95,8 @@ function Toggle({
           styles.knob,
           {
             backgroundColor: on ? colors.accent : colors.muted2,
-            alignSelf: on ? "flex-end" : "flex-start",
+            // GPU-only transform positioning (no layout recalculation).
+            transform: [{ translateX: on ? KNOB_ON_X : 0 }],
           },
         ]}
       />
@@ -106,12 +121,13 @@ function SettingRow({
           {detail}
         </ThemedText>
       </View>
-      {control}
+      {control !== undefined ? control : null}
     </View>
   );
 }
 
 export default function MoreScreen() {
+  const colors = useAppColors();
   const {
     englishTtsEnabled,
     falamAudioEnabled,
@@ -121,56 +137,67 @@ export default function MoreScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+      >
         <ThemedText variant="pageTitle">More</ThemedText>
-        <ThemedText variant="eyebrow" tone="secondary">
-          APPEARANCE
-        </ThemedText>
-        <SettingRow
-          name="Theme"
-          detail="Choose how Falam Dictionary looks"
-          control={<ThemeSegmented />}
-        />
-        <ThemedText variant="eyebrow" tone="secondary">
-          LANGUAGE
-        </ThemedText>
-        <SettingRow
-          name="Dictionary direction"
-          detail="Falam ⇄ English · switch on Search"
-        />
-        <ThemedText variant="eyebrow" tone="secondary">
-          AUDIO
-        </ThemedText>
-        <SettingRow
-          name="English pronunciation"
-          detail="Use device voice"
-          control={
-            <Toggle
-              on={englishTtsEnabled}
-              onChange={setEnglishTtsEnabled}
-              label="English pronunciation enabled"
-            />
-          }
-        />
-        <SettingRow
-          name="Falam recordings"
-          detail="Native-speaker audio when available"
-          control={
-            <Toggle
-              on={falamAudioEnabled}
-              onChange={setFalamAudioEnabled}
-              label="Falam recordings enabled"
-            />
-          }
-        />
-        <ThemedText variant="eyebrow" tone="secondary">
-          ABOUT
-        </ThemedText>
-        <SettingRow
-          name="Dictionary information"
-          detail="User-contributed words · unverified drafts"
-        />
-        <SettingRow name="Version" detail="1.0.0 · offline edition" />
+        <Card style={{ backgroundColor: colors.surface }}>
+          <ThemedText variant="eyebrow" tone="secondary">
+            APPEARANCE
+          </ThemedText>
+          <SettingRow
+            name="Theme"
+            detail="Choose how Falam Dictionary looks"
+            control={<ThemeSegmented />}
+          />
+        </Card>
+        <Card style={{ backgroundColor: colors.surface }}>
+          <ThemedText variant="eyebrow" tone="secondary">
+            LANGUAGE
+          </ThemedText>
+          <SettingRow
+            name="Dictionary direction"
+            detail="Falam ⇄ English · switch on Search"
+          />
+        </Card>
+        <Card style={{ backgroundColor: colors.surface }}>
+          <ThemedText variant="eyebrow" tone="secondary">
+            AUDIO
+          </ThemedText>
+          <SettingRow
+            name="English pronunciation"
+            detail="Use device voice"
+            control={
+              <Toggle
+                on={englishTtsEnabled}
+                onChange={setEnglishTtsEnabled}
+                label="English pronunciation enabled"
+              />
+            }
+          />
+          <SettingRow
+            name="Falam recordings"
+            detail="Native-speaker audio when available"
+            control={
+              <Toggle
+                on={falamAudioEnabled}
+                onChange={setFalamAudioEnabled}
+                label="Falam recordings enabled"
+              />
+            }
+          />
+        </Card>
+        <Card style={{ backgroundColor: colors.surface }}>
+          <ThemedText variant="eyebrow" tone="secondary">
+            ABOUT
+          </ThemedText>
+          <SettingRow
+            name="Dictionary information"
+            detail="User-contributed words · unverified drafts"
+          />
+          <SettingRow name="Version" detail="1.0.0 · offline edition" />
+        </Card>
       </ScrollView>
     </Screen>
   );
@@ -183,8 +210,6 @@ const styles = StyleSheet.create({
   },
   settingRow: {
     alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "transparent",
     flexDirection: "row",
     gap: spacing.md,
     justifyContent: "space-between",
@@ -194,6 +219,7 @@ const styles = StyleSheet.create({
   settingCopy: {
     flex: 1,
     minWidth: 0,
+    gap: 2,
   },
   segmented: {
     borderRadius: 11,
@@ -207,6 +233,9 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+  },
+  themeActive: {
+    boxShadow: "0 1px 4px rgba(12, 32, 27, 0.12)",
   },
   activeOption: {
     fontFamily: fontFamily.uiBold,

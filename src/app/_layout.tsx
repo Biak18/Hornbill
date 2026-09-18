@@ -11,7 +11,8 @@ import {
 } from "expo-router/react-navigation";
 import { Stack } from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
-import { useColorScheme } from "react-native";
+import { StyleSheet, useColorScheme } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AudioSettingsProvider } from "@/stores/audio-settings";
 import { FavoritesProvider } from "@/stores/favorites";
 import { HistoryProvider } from "@/stores/history";
@@ -51,15 +52,23 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <ThemePreferenceProvider>
-        <AudioSettingsProvider>
-          <FavoritesProvider>
-            <HistoryProvider>
-              <RootStack />
-            </HistoryProvider>
-          </FavoritesProvider>
-        </AudioSettingsProvider>
-      </ThemePreferenceProvider>
+      <GestureHandlerRootView style={styles.root}>
+        <ThemePreferenceProvider>
+          <AudioSettingsProvider>
+            <FavoritesProvider>
+              <HistoryProvider>
+                <RootStack />
+              </HistoryProvider>
+            </FavoritesProvider>
+          </AudioSettingsProvider>
+        </ThemePreferenceProvider>
+      </GestureHandlerRootView>
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

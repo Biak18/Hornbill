@@ -1,6 +1,8 @@
 // History tab: recently viewed entries, most-recent-first, capped in store.
 // Single honest "Recent" section — no fabricated Today/Yesterday groupings
 // or timestamps, since view times are not recorded.
+// List is FlashList via EntryList (skill 2.6) with a header row for the
+// section label + clear action and an empty state.
 
 import { useCallback, useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -25,6 +27,7 @@ export default function HistoryScreen() {
         .filter((entry): entry is DictionaryEntry => entry !== undefined),
     [historyIds],
   );
+  const hasEntries = entries.length > 0;
 
   const handlePressEntry = useCallback(
     (id: string) => {
@@ -38,36 +41,38 @@ export default function HistoryScreen() {
       <View style={styles.titleWrap}>
         <ThemedText variant="pageTitle">History</ThemedText>
       </View>
-      {entries.length === 0 ? (
-        <EmptyState
-          icon="history"
-          title="No recent words"
-          copy="Your recent searches will appear here."
-        />
-      ) : (
-        <View style={styles.listWrap}>
-          <View style={styles.sectionLabel}>
-            <ThemedText variant="eyebrow" tone="secondary">
-              RECENT
-            </ThemedText>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Clear all history"
-              onPress={clear}
-              style={styles.clearButton}
-            >
-              <ThemedText variant="label" tone="accent">
-                Clear all
-              </ThemedText>
-            </Pressable>
-          </View>
+      {hasEntries ? (
+        <View style={styles.listFlex}>
           <EntryList
             entries={entries}
             onPressEntry={handlePressEntry}
             icon="chevron"
             showPosTag={false}
+            ListHeaderComponent={
+              <View style={styles.sectionLabel}>
+                <ThemedText variant="eyebrow" tone="secondary">
+                  RECENT
+                </ThemedText>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear all history"
+                  onPress={clear}
+                  style={styles.clearButton}
+                >
+                  <ThemedText variant="label" tone="accent">
+                    Clear all
+                  </ThemedText>
+                </Pressable>
+              </View>
+            }
           />
         </View>
+      ) : (
+        <EmptyState
+          icon="history"
+          title="No recent words"
+          copy="Your recent searches will appear here."
+        />
       )}
     </Screen>
   );
@@ -75,17 +80,18 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   titleWrap: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
   },
-  listWrap: {
+  listFlex: {
     flex: 1,
   },
   sectionLabel: {
-    alignItems: "baseline",
+    alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   clearButton: {
     padding: spacing.xs,

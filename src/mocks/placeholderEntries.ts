@@ -38,7 +38,7 @@ function makeEntry(
   word: string,
   partOfSpeech: DictionaryEntry["partOfSpeech"],
   senses: SenseInput[],
-  notes?: string,
+  extra?: { notes?: string; audioId?: string },
 ): DictionaryEntry {
   return {
     id,
@@ -57,7 +57,8 @@ function makeEntry(
           }
         : {}),
     })),
-    ...(notes ? { notes } : {}),
+    ...(extra?.notes ? { notes: extra.notes } : {}),
+    ...(extra?.audioId ? { audioId: extra.audioId } : {}),
     source: { ...USER_SOURCE },
     verificationStatus: "draft",
   };
@@ -165,7 +166,10 @@ export const placeholderEntries: DictionaryEntry[] = [
       },
       { english: "man who have got a child or children" },
     ],
-    "Compounds given without glosses: sentlung pa; pa-uithin; pa-leng; pasi; mau pa; pawl pa.",
+    {
+      notes:
+        "Compounds given without glosses: sentlung pa; pa-uithin; pa-leng; pasi; mau pa; pawl pa.",
+    },
   ),
   makeEntry("entry_user_009", "pa", "verb", [
     {
@@ -276,7 +280,9 @@ export const placeholderEntries: DictionaryEntry[] = [
         },
       ],
     },
-  ]),
+  ],
+    { audioId: "000001" },
+  ),
   makeEntry("entry_user_023", "naute", "noun", [
     { english: "baby, child, infant, tiny baby, young child" },
     {

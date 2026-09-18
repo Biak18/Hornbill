@@ -1,4 +1,6 @@
 // Favorites tab: saved entries with heart markers, available offline.
+// Header shows an honest count; list is FlashList via EntryList (skill 2.6)
+// with native bottom insets (skill 9.4). Empty state offers a search action.
 
 import { useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
@@ -39,6 +41,11 @@ export default function FavoritesScreen() {
     <Screen>
       <View style={styles.titleWrap}>
         <ThemedText variant="pageTitle">Favorites</ThemedText>
+        {entries.length > 0 ? (
+          <ThemedText variant="bodySm" tone="secondary">
+            {`${entries.length} saved ${entries.length === 1 ? "word" : "words"} · available offline`}
+          </ThemedText>
+        ) : null}
       </View>
       {entries.length === 0 ? (
         <EmptyState
@@ -49,12 +56,14 @@ export default function FavoritesScreen() {
           onAction={goSearch}
         />
       ) : (
-        <EntryList
-          entries={entries}
-          onPressEntry={handlePressEntry}
-          icon="heart"
-          showPosTag={false}
-        />
+        <View style={styles.listFlex}>
+          <EntryList
+            entries={entries}
+            onPressEntry={handlePressEntry}
+            icon="heart"
+            showPosTag={false}
+          />
+        </View>
       )}
     </Screen>
   );
@@ -62,7 +71,12 @@ export default function FavoritesScreen() {
 
 const styles = StyleSheet.create({
   titleWrap: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
+    gap: 2,
+  },
+  listFlex: {
+    flex: 1,
   },
 });

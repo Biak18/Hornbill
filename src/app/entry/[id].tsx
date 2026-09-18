@@ -1,13 +1,22 @@
-// Entry detail (polished `.screen-entry`):
-// save heart, huge Noto headword, pronunciation, peach-dot POS,
-// audio pill (honest unavailable state until the Phase 4 engine lands),
-// per-sense meaning blocks with example cards, tappable related chips that
-// resolve to real entries, honest source line. Only rendered chips navigate
-// — unresolvable references are filtered out, never dead.
+// Entry detail — word-first hierarchy: headword → pronunciation → POS →
+// audio → meanings → related. Original design, Papago-inspired clarity.
+// Skill rules:
+// - Scroll position lives in a Reanimated shared value via
+//   useAnimatedScrollHandler (skill 4.1 — never useState for scroll).
+//   Hero fade/scale derive from it (ground truth + useDerivedValue,
+//   skills 6.1/7.1/3.2) and animate transform/opacity only (skill 3.1).
+// - Favorite + chips use PressableScale (GestureDetector, UI thread).
+// - ScrollView is the content root with contentInsetAdjustmentBehavior
+//   automatic (skill 9.4); gap + boxShadow + borderCurve (skill 9.2).
+// - Ternary-with-null conditionals; strings inside ThemedText.
 
+import { getFalamAudioSource } from "@/audio/audio-files";
+import { FalamAudioButton } from "@/audio/falam-audio-button";
 import { Screen } from "@/components/screen";
 import { ThemedText } from "@/components/themed-text";
+import { Card, CardBody, PressableScale } from "@/components/ui";
 import { dictionaryRepository } from "@/repositories";
+import { useAudioSettings } from "@/stores/audio-settings";
 import { useFavorites } from "@/stores/favorites";
 import { useHistory } from "@/stores/history";
 import { radius, spacing, useAppColors } from "@/theme";
@@ -15,7 +24,14 @@ import type { DictionaryEntry } from "@/types/dictionary";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+} from "react-native-reanimated";
 
 function ResolvedChips({
   title,
@@ -44,15 +60,14 @@ function ResolvedChips({
       </ThemedText>
       <View style={styles.chips}>
         {resolved.map((entry) => (
-          <Pressable
+          <PressableScale
             key={entry.id}
-            accessibilityRole="button"
             accessibilityLabel={`Open ${entry.word}`}
             onPress={() => onPressEntry(entry.id)}
             style={[styles.chip, { borderColor: colors.line }]}
           >
             <ThemedText variant="chip">{entry.word}</ThemedText>
-          </Pressable>
+          </PressableScale>
         ))}
       </View>
     </View>
@@ -70,6 +85,25 @@ export default function EntryScreen() {
       : undefined;
   const { isFavorite, toggleFavorite } = useFavorites();
   const { record } = useHistory();
+  const { falamAudioEnabled } = useAudioSettings();
+
+  // Scroll ground truth (shared value, never useState) for hero motion.
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.set(e.contentOffset.y);
+    },
+  });
+  const heroProgress = useDerivedValue(() =>
+    Math.min(Math.max(scrollY.get() / 160, 0), 1),
+  );
+  const heroStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(heroProgress.get(), [0, 1], [1, 0.55]),
+    transform: [
+      { scale: interpolate(heroProgress.get(), [0, 1], [1, 0.98]) },
+      { translateY: interpolate(heroProgress.get(), [0, 1], [0, 8]) },
+    ],
+  }));
 
   useEffect(() => {
     if (entry !== undefined) {
@@ -97,92 +131,143 @@ export default function EntryScreen() {
 
   const favorite = isFavorite(entry.id);
   const multiSense = entry.definitions.length > 1;
+  const audioSource =
+    entry.audioId !== undefined
+      ? getFalamAudioSource(entry.audioId)
+      : undefined;
+  const hasPronunciation =
+    entry.pronunciation !== undefined && entry.pronunciation.length > 0;
+  const hasPos =
+    entry.partOfSpeech !== undefined && entry.partOfSpeech.length > 0;
+  const canPlayAudio = audioSource !== undefined && falamAudioEnabled;
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+      >
         <View style={styles.actionsRow}>
-          <Pressable
-            accessibilityRole="button"
+          <PressableScale
             accessibilityLabel={
               favorite
                 ? `Remove ${entry.word} from favorites`
                 : `Save ${entry.word} to favorites`
             }
-            accessibilityState={{ selected: favorite }}
             onPress={() => toggleFavorite(entry.id)}
-            style={styles.saveButton}
+            style={[
+              styles.saveButton,
+              { backgroundColor: colors.surface2 },
+            ]}
           >
             <MaterialIcons
               name={favorite ? "favorite" : "favorite-border"}
               size={22}
               color={favorite ? colors.peach : colors.muted}
             />
-          </Pressable>
+          </PressableScale>
         </View>
-        <View style={styles.hero}>
-          <ThemedText variant="wordHero" selectable>
-            {entry.word}
-          </ThemedText>
-          {entry.pronunciation ? (
-            <ThemedText variant="phonetic" tone="secondary" selectable>
-              {entry.pronunciation}
+        <Animated.View style={[styles.heroCard, heroStyle]}>
+          <View
+            style={[
+              styles.hero,
+              {
+                backgroundColor: colors.paper,
+                // Skill 9.2: native CSS gradient, no third-party library.
+                experimental_backgroundImage: `linear-gradient(to bottom, ${colors.accentSoft}, ${colors.paper} 70%)`,
+              },
+            ]}
+          >
+            <ThemedText variant="wordHero" selectable>
+              {entry.word}
             </ThemedText>
-          ) : null}
-          {entry.partOfSpeech ? (
-            <View style={styles.posRow}>
-              <View
-                style={[styles.posDot, { backgroundColor: colors.peach }]}
-              />
-              <ThemedText variant="label" tone="accent">
-                {entry.partOfSpeech}
+            {hasPronunciation ? (
+              <ThemedText
+                variant="phonetic"
+                tone="secondary"
+                selectable
+              >
+                {entry.pronunciation as string}
               </ThemedText>
-            </View>
-          ) : null}
-          <View style={styles.actions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Falam audio unavailable"
-              accessibilityState={{ disabled: true }}
-              disabled
-              style={[styles.audioPill, { backgroundColor: colors.surface2 }]}
-            >
-              <MaterialIcons name="volume-off" size={18} color={colors.muted} />
-              <ThemedText variant="label" tone="secondary">
-                Audio unavailable
-              </ThemedText>
-            </Pressable>
-          </View>
-        </View>
-        {entry.definitions.map((sense, index) => (
-          <View key={sense.id} style={styles.block}>
-            <ThemedText variant="eyebrow" tone="secondary">
-              {multiSense ? `MEANING ${index + 1}` : "ENGLISH MEANING"}
-            </ThemedText>
-            <ThemedText variant="definition" selectable>
-              {sense.english}
-            </ThemedText>
-            {sense.examples ? (
-              <View style={styles.examples}>
-                {sense.examples.map((example) => (
-                  <View
-                    key={`${sense.id}-${example.falam}-${example.english}`}
-                    style={[styles.example, { backgroundColor: colors.paper }]}
-                  >
-                    <ThemedText variant="exampleFal" selectable>
-                      {example.falam}
-                    </ThemedText>
-                    {example.english ? (
-                      <ThemedText variant="bodySm" tone="secondary">
-                        {example.english}
-                      </ThemedText>
-                    ) : null}
-                  </View>
-                ))}
+            ) : null}
+            {hasPos ? (
+              <View style={styles.posRow}>
+                <View
+                  style={[styles.posDot, { backgroundColor: colors.peach }]}
+                />
+                <ThemedText variant="label" tone="accent">
+                  {entry.partOfSpeech as string}
+                </ThemedText>
               </View>
             ) : null}
+            <View style={styles.actions}>
+              {canPlayAudio ? (
+                <FalamAudioButton source={audioSource as number} />
+              ) : (
+                <View
+                  style={[
+                    styles.audioNote,
+                    { backgroundColor: colors.surface2 },
+                  ]}
+                >
+                  <MaterialIcons
+                    name="volume-off"
+                    size={18}
+                    color={colors.muted}
+                  />
+                  <ThemedText variant="label" tone="secondary">
+                    {!falamAudioEnabled
+                      ? "Recordings off — enable in More → Audio"
+                      : "Audio unavailable"}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
           </View>
-        ))}
+        </Animated.View>
+        {entry.definitions.map((sense, index) => {
+          const hasExamples =
+            sense.examples !== undefined && sense.examples.length > 0;
+          return (
+            <Card
+              key={sense.id}
+              style={[styles.sense, { backgroundColor: colors.surface }]}
+            >
+              <ThemedText variant="eyebrow" tone="secondary">
+                {multiSense ? `MEANING ${index + 1}` : "ENGLISH MEANING"}
+              </ThemedText>
+              <CardBody>
+                <ThemedText variant="definition" selectable>
+                  {sense.english}
+                </ThemedText>
+                {hasExamples ? (
+                  <View style={styles.examples}>
+                    {(sense.examples ?? []).map((example) => (
+                      <View
+                        key={`${sense.id}-${example.falam}-${example.english}`}
+                        style={[
+                          styles.example,
+                          { backgroundColor: colors.paper },
+                        ]}
+                      >
+                        <ThemedText variant="exampleFal" selectable>
+                          {example.falam}
+                        </ThemedText>
+                        {example.english ? (
+                          <ThemedText variant="bodySm" tone="secondary">
+                            {example.english}
+                          </ThemedText>
+                        ) : null}
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </CardBody>
+            </Card>
+          );
+        })}
         <View style={styles.block}>
           <ThemedText variant="eyebrow" tone="secondary">
             STATUS
@@ -191,14 +276,14 @@ export default function EntryScreen() {
             Draft · contributed wordlist, awaiting verification
           </ThemedText>
         </View>
-        {entry.synonyms ? (
+        {entry.synonyms !== undefined ? (
           <ResolvedChips
             title="Synonyms"
             ids={entry.synonyms}
             onPressEntry={handlePressEntry}
           />
         ) : null}
-        {entry.relatedWords ? (
+        {entry.relatedWords !== undefined ? (
           <ResolvedChips
             title="Related words"
             ids={entry.relatedWords}
@@ -213,14 +298,14 @@ export default function EntryScreen() {
             {`${entry.source?.sourceName ?? "Unknown"} · pronunciation recording not available`}
           </ThemedText>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    gap: spacing.lg,
+    gap: spacing.md,
     padding: spacing.lg,
     paddingTop: spacing.sm,
   },
@@ -234,10 +319,24 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   saveButton: {
-    padding: spacing.xs,
+    alignItems: "center",
+    borderRadius: radius.full,
+    borderCurve: "continuous",
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+    boxShadow: "0 2px 8px rgba(12, 32, 27, 0.12)",
+  },
+  heroCard: {
+    borderRadius: radius.card,
+    borderCurve: "continuous",
   },
   hero: {
+    borderRadius: radius.card,
+    borderCurve: "continuous",
     gap: spacing.sm,
+    padding: spacing.lg,
+    boxShadow: "0 2px 12px rgba(12, 32, 27, 0.08)",
   },
   posRow: {
     alignItems: "center",
@@ -254,7 +353,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginTop: spacing.sm,
   },
-  audioPill: {
+  audioNote: {
     alignItems: "center",
     borderRadius: radius.full,
     borderCurve: "continuous",
@@ -263,9 +362,10 @@ const styles = StyleSheet.create({
     minHeight: 46,
     paddingHorizontal: spacing.md,
   },
+  sense: {
+    gap: spacing.sm,
+  },
   block: {
-    borderTopColor: "transparent",
-    borderTopWidth: 0,
     gap: spacing.sm,
     paddingTop: spacing.sm,
   },
@@ -287,7 +387,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderCurve: "continuous",
     borderWidth: 1,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
 });
