@@ -1,20 +1,19 @@
-// Entry detail — word-first hierarchy: headword → pronunciation → POS →
-// audio → meanings → related. Original design, Papago-inspired clarity.
-// Skill rules:
-// - Scroll position lives in a Reanimated shared value via
-//   useAnimatedScrollHandler (skill 4.1 — never useState for scroll).
-//   Hero fade/scale derive from it (ground truth + useDerivedValue,
-//   skills 6.1/7.1/3.2) and animate transform/opacity only (skill 3.1).
-// - Favorite + chips use PressableScale (GestureDetector, UI thread).
-// - ScrollView is the content root with contentInsetAdjustmentBehavior
-//   automatic (skill 9.4); gap + boxShadow + borderCurve (skill 9.2).
-// - Ternary-with-null conditionals; strings inside ThemedText.
+// Entry detail — Stitch "Dictionary Word Detail" structure adapted to real
+// data with our identity (no level badges, photos, voice picker, or grammar
+// notes — the dataset has none, and missing data is omitted, never invented):
+// hero card (meta chips → headword → pronunciation → audio bar) → numbered
+// sense cards with example boxes → synonyms/antonyms groups → related words
+// → notes → status/source. Only resolved references navigate, never dead.
+// Skill rules: scroll position in a shared value (never useState); hero
+// motion derives from it via transform/opacity only; PressableScale chips;
+// automatic scroll insets; ternary-with-null; strings in ThemedText.
 
 import { getFalamAudioSource } from "@/audio/audio-files";
 import { FalamAudioButton } from "@/audio/falam-audio-button";
 import { Screen } from "@/components/screen";
 import { ThemedText } from "@/components/themed-text";
 import { Card, CardBody, PressableScale } from "@/components/ui";
+import { WaveBars } from "@/components/wave-bars";
 import { dictionaryRepository } from "@/repositories";
 import { useAudioSettings } from "@/stores/audio-settings";
 import { useFavorites } from "@/stores/favorites";
@@ -22,7 +21,7 @@ import { useHistory } from "@/stores/history";
 import { radius, spacing, useAppColors } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -33,12 +32,14 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
-function ResolvedChips({
+function ChipGroup({
   title,
+  dotColor,
   ids,
   onPressEntry,
 }: {
   title: string;
+  dotColor: string;
   ids: readonly string[];
   onPressEntry: (id: string) => void;
 }) {
@@ -54,23 +55,31 @@ function ResolvedChips({
     return null;
   }
   return (
-    <View style={styles.block}>
-      <ThemedText variant="eyebrow" tone="secondary">
-        {title.toUpperCase()}
-      </ThemedText>
+    <Card style={[styles.group, { backgroundColor: colors.paper }]}>
+      <View style={styles.groupTitle}>
+        <View style={[styles.dot, { backgroundColor: dotColor }]} />
+        <ThemedText variant="eyebrow" tone="secondary">
+          {title.toUpperCase()}
+        </ThemedText>
+      </View>
       <View style={styles.chips}>
         {resolved.map((entry) => (
           <PressableScale
             key={entry.id}
             accessibilityLabel={`Open ${entry.word}`}
             onPress={() => onPressEntry(entry.id)}
-            style={[styles.chip, { borderColor: colors.line }]}
+            style={[styles.chip, { backgroundColor: colors.surface2 }]}
           >
-            <ThemedText variant="chip">{entry.word}</ThemedText>
+            <ThemedText variant="label">{entry.word}</ThemedText>
+            <MaterialIcons
+              name="arrow-forward"
+              size={14}
+              color={colors.muted2}
+            />
           </PressableScale>
         ))}
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -131,87 +140,96 @@ export default function EntryScreen() {
 
   const favorite = isFavorite(entry.id);
   const multiSense = entry.definitions.length > 1;
+  const hasPhonetic =
+    entry.pronunciation !== undefined && entry.pronunciation.length > 0;
+  const hasPos =
+    entry.partOfSpeech !== undefined && entry.partOfSpeech.length > 0;
+  const hasNotes = entry.notes !== undefined && entry.notes.length > 0;
   const audioSource =
     entry.audioId !== undefined
       ? getFalamAudioSource(entry.audioId)
       : undefined;
-  const hasPronunciation =
-    entry.pronunciation !== undefined && entry.pronunciation.length > 0;
-  const hasPos =
-    entry.partOfSpeech !== undefined && entry.partOfSpeech.length > 0;
   const canPlayAudio = audioSource !== undefined && falamAudioEnabled;
 
   return (
     <Screen>
+      {/* Dynamic header title: the headword itself. The layout fallback
+        ("Entry") only shows when the entry can't be resolved. */}
+      <Stack.Screen options={{ title: entry.word }} />
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
-        <View style={styles.actionsRow}>
-          <PressableScale
-            accessibilityLabel={
-              favorite
-                ? `Remove ${entry.word} from favorites`
-                : `Save ${entry.word} to favorites`
-            }
-            onPress={() => toggleFavorite(entry.id)}
-            style={[
-              styles.saveButton,
-              { backgroundColor: colors.surface2 },
-            ]}
-          >
-            <MaterialIcons
-              name={favorite ? "favorite" : "favorite-border"}
-              size={22}
-              color={favorite ? colors.peach : colors.muted}
-            />
-          </PressableScale>
-        </View>
-        <Animated.View style={[styles.heroCard, heroStyle]}>
+        <Animated.View style={heroStyle}>
           <View
             style={[
               styles.hero,
               {
                 backgroundColor: colors.paper,
-                // Skill 9.2: native CSS gradient, no third-party library.
+                borderColor: colors.line,
+                // Native CSS gradient wash, no third-party library.
                 experimental_backgroundImage: `linear-gradient(to bottom, ${colors.accentSoft}, ${colors.paper} 70%)`,
               },
             ]}
           >
-            <ThemedText variant="wordHero" selectable>
-              {entry.word}
-            </ThemedText>
-            {hasPronunciation ? (
-              <ThemedText
-                variant="phonetic"
-                tone="secondary"
-                selectable
-              >
-                {entry.pronunciation as string}
-              </ThemedText>
-            ) : null}
-            {hasPos ? (
-              <View style={styles.posRow}>
+            <View style={styles.metaRow}>
+              <View style={styles.metaChips}>
+                {hasPos ? (
+                  <View
+                    style={[styles.metaChip, { backgroundColor: colors.surface2 }]}
+                  >
+                    <ThemedText variant="labelSm" tone="accent">
+                      {(entry.partOfSpeech as string).toUpperCase()}
+                    </ThemedText>
+                  </View>
+                ) : null}
                 <View
-                  style={[styles.posDot, { backgroundColor: colors.peach }]}
-                />
-                <ThemedText variant="label" tone="accent">
-                  {entry.partOfSpeech as string}
-                </ThemedText>
+                  style={[styles.metaChip, { backgroundColor: colors.surface2 }]}
+                >
+                  <ThemedText variant="labelSm" tone="secondary">
+                    {entry.verificationStatus === "draft"
+                      ? "Draft"
+                      : entry.verificationStatus === "reviewed"
+                        ? "Reviewed"
+                        : "Verified"}
+                  </ThemedText>
+                </View>
               </View>
-            ) : null}
-            <View style={styles.actions}>
+              <PressableScale
+                accessibilityLabel={
+                  favorite
+                    ? `Remove ${entry.word} from wordbook`
+                    : `Save ${entry.word} to wordbook`
+                }
+                onPress={() => toggleFavorite(entry.id)}
+                style={styles.saveButton}
+              >
+                <MaterialIcons
+                  name={favorite ? "star" : "star-border"}
+                  size={22}
+                  color={favorite ? colors.peach : colors.muted}
+                />
+              </PressableScale>
+            </View>
+            <View style={styles.headline}>
+              <ThemedText variant="wordHero" selectable>
+                {entry.word}
+              </ThemedText>
+              {hasPhonetic ? (
+                <ThemedText variant="phonetic" tone="secondary" selectable>
+                  {entry.pronunciation as string}
+                </ThemedText>
+              ) : null}
+            </View>
+            <View
+              style={[styles.audioBar, { backgroundColor: colors.surface2 }]}
+            >
               {canPlayAudio ? (
                 <FalamAudioButton source={audioSource as number} />
               ) : (
-                <View
-                  style={[
-                    styles.audioNote,
-                    { backgroundColor: colors.surface2 },
-                  ]}
-                >
+                <View style={styles.audioNote}>
                   <MaterialIcons
                     name="volume-off"
                     size={18}
@@ -224,38 +242,72 @@ export default function EntryScreen() {
                   </ThemedText>
                 </View>
               )}
+              <WaveBars color={colors.accent} />
             </View>
           </View>
         </Animated.View>
         {entry.definitions.map((sense, index) => {
           const hasExamples =
             sense.examples !== undefined && sense.examples.length > 0;
+          const primary = index === 0;
           return (
             <Card
               key={sense.id}
-              style={[styles.sense, { backgroundColor: colors.surface }]}
+              style={[
+                styles.sense,
+                { backgroundColor: colors.paper, borderColor: colors.line },
+              ]}
             >
-              <ThemedText variant="eyebrow" tone="secondary">
-                {multiSense ? `MEANING ${index + 1}` : "ENGLISH MEANING"}
-              </ThemedText>
+              <View style={styles.senseHead}>
+                <View
+                  style={[
+                    styles.senseNumber,
+                    {
+                      backgroundColor: primary
+                        ? colors.accentSoft
+                        : colors.surface2,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    variant="label"
+                    tone={primary ? "accent" : "secondary"}
+                  >
+                    {String(index + 1)}
+                  </ThemedText>
+                </View>
+                <ThemedText variant="eyebrow" tone="secondary">
+                  {multiSense ? `MEANING ${index + 1}` : "ENGLISH MEANING"}
+                </ThemedText>
+              </View>
               <CardBody>
                 <ThemedText variant="definition" selectable>
                   {sense.english}
                 </ThemedText>
                 {hasExamples ? (
                   <View style={styles.examples}>
+                    <View style={styles.examplesLabel}>
+                      <MaterialIcons
+                        name="format-quote"
+                        size={14}
+                        color={colors.muted}
+                      />
+                      <ThemedText variant="labelSm" tone="faint">
+                        EXAMPLES
+                      </ThemedText>
+                    </View>
                     {(sense.examples ?? []).map((example) => (
                       <View
                         key={`${sense.id}-${example.falam}-${example.english}`}
                         style={[
                           styles.example,
-                          { backgroundColor: colors.paper },
+                          { backgroundColor: colors.surface2 },
                         ]}
                       >
                         <ThemedText variant="exampleFal" selectable>
                           {example.falam}
                         </ThemedText>
-                        {example.english ? (
+                        {example.english.length > 0 ? (
                           <ThemedText variant="bodySm" tone="secondary">
                             {example.english}
                           </ThemedText>
@@ -268,28 +320,59 @@ export default function EntryScreen() {
             </Card>
           );
         })}
+        {entry.synonyms !== undefined ? (
+          <ChipGroup
+            title="Synonyms"
+            dotColor={colors.accent}
+            ids={entry.synonyms}
+            onPressEntry={handlePressEntry}
+          />
+        ) : null}
+        {entry.antonyms !== undefined ? (
+          <ChipGroup
+            title="Antonyms"
+            dotColor={colors.peach}
+            ids={entry.antonyms}
+            onPressEntry={handlePressEntry}
+          />
+        ) : null}
+        {entry.relatedWords !== undefined ? (
+          <ChipGroup
+            title="Related words"
+            dotColor={colors.muted2}
+            ids={entry.relatedWords}
+            onPressEntry={handlePressEntry}
+          />
+        ) : null}
+        {hasNotes ? (
+          <Card
+            style={[
+              styles.sense,
+              { backgroundColor: colors.paper, borderColor: colors.line },
+            ]}
+          >
+            <ThemedText variant="eyebrow" tone="secondary">
+              NOTE
+            </ThemedText>
+            <CardBody>
+              <ThemedText variant="bodySm" tone="secondary" selectable>
+                {entry.notes as string}
+              </ThemedText>
+            </CardBody>
+          </Card>
+        ) : null}
         <View style={styles.block}>
           <ThemedText variant="eyebrow" tone="secondary">
             STATUS
           </ThemedText>
           <ThemedText variant="bodySm" tone="secondary">
-            Draft · contributed wordlist, awaiting verification
+            {entry.verificationStatus === "draft"
+              ? "Draft · contributed wordlist, awaiting verification"
+              : entry.verificationStatus === "reviewed"
+                ? "Reviewed · awaiting final verification"
+                : "Verified · reviewed by a knowledgeable speaker"}
           </ThemedText>
         </View>
-        {entry.synonyms !== undefined ? (
-          <ResolvedChips
-            title="Synonyms"
-            ids={entry.synonyms}
-            onPressEntry={handlePressEntry}
-          />
-        ) : null}
-        {entry.relatedWords !== undefined ? (
-          <ResolvedChips
-            title="Related words"
-            ids={entry.relatedWords}
-            onPressEntry={handlePressEntry}
-          />
-        ) : null}
         <View style={styles.block}>
           <ThemedText variant="eyebrow" tone="secondary">
             SOURCE
@@ -315,68 +398,97 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: spacing.lg,
   },
-  actionsRow: {
-    alignItems: "flex-end",
-  },
-  saveButton: {
-    alignItems: "center",
-    borderRadius: radius.full,
-    borderCurve: "continuous",
-    height: 44,
-    justifyContent: "center",
-    width: 44,
-    boxShadow: "0 2px 8px rgba(12, 32, 27, 0.12)",
-  },
-  heroCard: {
-    borderRadius: radius.card,
-    borderCurve: "continuous",
-  },
   hero: {
     borderRadius: radius.card,
     borderCurve: "continuous",
-    gap: spacing.sm,
+    borderWidth: 1,
+    gap: spacing.md,
     padding: spacing.lg,
-    boxShadow: "0 2px 12px rgba(12, 32, 27, 0.08)",
+    boxShadow: "0 4px 16px rgba(12, 32, 27, 0.08)",
   },
-  posRow: {
-    alignItems: "center",
+  metaRow: {
+    alignItems: "flex-start",
     flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  metaChips: {
+    flex: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
-    marginTop: spacing.xs,
+    paddingTop: spacing.xs,
   },
-  posDot: {
+  metaChip: {
     borderRadius: radius.full,
-    height: 6,
-    width: 6,
+    borderCurve: "continuous",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
   },
-  actions: {
-    flexDirection: "row",
-    marginTop: spacing.sm,
+  saveButton: {
+    padding: spacing.xs,
   },
-  audioNote: {
+  headline: {
+    gap: spacing.xs,
+  },
+  audioBar: {
     alignItems: "center",
-    borderRadius: radius.full,
+    borderRadius: radius.card,
     borderCurve: "continuous",
     flexDirection: "row",
     gap: spacing.sm,
-    minHeight: 46,
-    paddingHorizontal: spacing.md,
+    justifyContent: "space-between",
+    padding: spacing.sm,
+    paddingLeft: spacing.md,
+  },
+  audioNote: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
   },
   sense: {
+    borderWidth: 1,
     gap: spacing.sm,
   },
-  block: {
+  senseHead: {
+    alignItems: "center",
+    flexDirection: "row",
     gap: spacing.sm,
-    paddingTop: spacing.sm,
+  },
+  senseNumber: {
+    alignItems: "center",
+    borderRadius: radius.full,
+    borderCurve: "continuous",
+    height: 24,
+    justifyContent: "center",
+    width: 24,
   },
   examples: {
     gap: spacing.sm,
   },
+  examplesLabel: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
+  },
   example: {
     borderRadius: radius.card,
     borderCurve: "continuous",
-    gap: spacing.xs,
+    gap: 2,
     padding: spacing.md,
+  },
+  group: {
+    borderWidth: 1,
+    gap: spacing.sm,
+  },
+  groupTitle: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  dot: {
+    borderRadius: radius.full,
+    height: 8,
+    width: 8,
   },
   chips: {
     flexDirection: "row",
@@ -384,10 +496,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   chip: {
+    alignItems: "center",
     borderRadius: radius.full,
     borderCurve: "continuous",
-    borderWidth: 1,
+    flexDirection: "row",
+    gap: 4,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+  },
+  block: {
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
   },
 });

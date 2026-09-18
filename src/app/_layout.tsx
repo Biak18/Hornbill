@@ -1,9 +1,13 @@
 // Root layout: fonts gate the splash screen, then providers + root stack.
-// Tabs live in "(tabs)"; entry detail pushes above them. All header chrome
-// is configured here exactly once — screens stay plain Views and never
-// touch Stack.Screen.
+// Tabs live in "(tabs)"; entry detail pushes above them. Static header
+// chrome is configured here exactly once — the only exception is the entry
+// title, which is the headword itself and set dynamically in entry/[id].
 
-import { useEffect } from "react";
+import { AudioSettingsProvider } from "@/stores/audio-settings";
+import { FavoritesProvider } from "@/stores/favorites";
+import { HistoryProvider } from "@/stores/history";
+import { ThemePreferenceProvider } from "@/stores/theme-preference";
+import { useAppColors, useAppFonts } from "@/theme";
 import {
   DarkTheme,
   DefaultTheme,
@@ -11,28 +15,26 @@ import {
 } from "expo-router/react-navigation";
 import { Stack } from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
-import { StyleSheet, useColorScheme } from "react-native";
+import { useEffect } from "react";
+import { StyleSheet, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AudioSettingsProvider } from "@/stores/audio-settings";
-import { FavoritesProvider } from "@/stores/favorites";
-import { HistoryProvider } from "@/stores/history";
-import { ThemePreferenceProvider } from "@/stores/theme-preference";
-import { useAppColors, useAppFonts } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
 
 function RootStack() {
   const colors = useAppColors();
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.surface },
-        headerShadowVisible: false,
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="entry/[id]" options={{ title: "Entry" }} />
-    </Stack>
+    <View style={{ flex: 1, backgroundColor: colors.surface }}>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.surface },
+          headerShadowVisible: false,
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="entry/[id]" options={{ title: "Entry" }} />
+      </Stack>
+    </View>
   );
 }
 

@@ -10,7 +10,7 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="favorites">
-        <NativeTabs.Trigger.Icon sf="heart" md="favorite" />
+        <NativeTabs.Trigger.Icon sf="star" md="star" />
         <NativeTabs.Trigger.Label>Favorites</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="history">

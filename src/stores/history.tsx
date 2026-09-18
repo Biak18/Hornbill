@@ -16,6 +16,7 @@ const MAX_HISTORY = 50;
 type HistoryContextValue = {
   historyIds: readonly string[];
   record: (id: string) => void;
+  remove: (id: string) => void;
   clear: () => void;
 };
 
@@ -34,9 +35,13 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
     setHistoryIds([]);
   }, []);
 
+  const remove = useCallback((id: string) => {
+    setHistoryIds((prev) => prev.filter((existing) => existing !== id));
+  }, []);
+
   const value = useMemo(
-    () => ({ historyIds, record, clear }),
-    [historyIds, record, clear],
+    () => ({ historyIds, record, remove, clear }),
+    [historyIds, record, remove, clear],
   );
 
   return (

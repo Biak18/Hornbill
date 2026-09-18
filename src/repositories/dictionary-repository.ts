@@ -14,6 +14,9 @@ export type SearchEntriesOptions = {
 
 export interface DictionaryRepository {
   getEntryById(id: string): DictionaryEntry | undefined;
+  /** All entries in dataset order (read-only). Used for deterministic
+   * picks such as the featured word; never for full scans in search. */
+  getAllEntries(): readonly DictionaryEntry[];
   /**
    * Falam → English: match `normalizedQuery` against entry search keys.
    * `normalizedQuery` must already be normalized (see search service).
@@ -78,6 +81,9 @@ export function createInMemoryDictionaryRepository(
   return {
     getEntryById(id) {
       return byId.get(id);
+    },
+    getAllEntries() {
+      return entries;
     },
     searchEntries(normalizedQuery, options) {
       if (normalizedQuery.length === 0) return [];

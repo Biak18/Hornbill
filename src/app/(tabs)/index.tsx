@@ -1,21 +1,23 @@
-// Search home — language-first, Papago-inspired but original.
-// UX: direction pill → big search field → tone chips → results.
-// Skill rules:
-// - Lists: results AND recents both render through EntryList (FlashList,
-//   skill 2.6); no ScrollView+FlatList nesting, no full-dataset state.
-// - State is minimal ground truth (query, direction); results/recent/count
-//   are derived during render (skill 6.1).
-// - Ternary-with-null conditionals; all strings inside ThemedText.
-// - Styling: gap, borderCurve continuous, boxShadow strings (skill 9.2);
-//   hero uses native experimental_backgroundImage gradient (no new dep).
+// Search home — Stitch "Translate & Search Home" structure adapted to a
+// dictionary-first app with our own identity (no translator, camera, or
+// third-party branding per AGENTS.md §16/§17):
+// AppHeader → DirectionPill → elevated search card → tone chips →
+// featured word + recent lookups (blank) or live results (typing).
+// Skill rules: FlashList via WordCardList; derived-only state; caret-aware
+// diacritic insert; stable header/empty identities; gap/boxShadow styling.
 
+import { AppHeader } from "@/components/app-header";
+import { DirectionPill } from "@/components/direction-pill";
 import { EmptyState } from "@/components/empty-state";
-import { EntryList } from "@/components/entry-list";
+import { FeaturedWordCard } from "@/components/featured-word-card";
 import { Screen } from "@/components/screen";
+import { SectionHeader } from "@/components/section-header";
 import { ThemedText } from "@/components/themed-text";
 import { PressableScale } from "@/components/ui";
+import { WordCardList } from "@/components/word-card-list";
 import { dictionaryRepository } from "@/repositories";
 import { searchDictionary, type SearchDirection } from "@/services/search";
+import { useFavorites } from "@/stores/favorites";
 import { useHistory } from "@/stores/history";
 import { radius, spacing, useAppColors } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
@@ -34,11 +36,6 @@ const DIACRITICS = ["â", "ē", "ī", "ō", "ū"] as const;
 const SEARCH_LIMIT = 20;
 const RECENT_LIMIT = 5;
 
-const DIRECTIONS: readonly { value: SearchDirection; label: string }[] = [
-  { value: "falam-en", label: "Falam → English" },
-  { value: "en-falam", label: "English → Falam" },
-];
-
 // Module scope: static empty state, identical element identity every render.
 const RecentEmpty = (
   <EmptyState
@@ -54,7 +51,8 @@ export default function SearchScreen() {
   const [query, setQuery] = useState("");
   const [direction, setDirection] = useState<SearchDirection>("falam-en");
   const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const { historyIds, clear } = useHistory();
+  const { historyIds, clear, remove } = useHistory();
+  const { favoriteIds, toggleFavorite } = useFavorites();
   const inputRef = useRef<TextInput>(null);
 
   // Derived: search results from ground-truth query+direction (no sync effects).
@@ -92,6 +90,24 @@ export default function SearchScreen() {
     [push],
   );
 
+  const handleToggleFavorite = useCallback(
+    (id: string) => {
+      toggleFavorite(id);
+    },
+    [toggleFavorite],
+  );
+
+  const handleRemoveRecent = useCallback(
+    (id: string) => {
+      remove(id);
+    },
+    [remove],
+  );
+
+  const handleDirectionChange = useCallback((next: SearchDirection) => {
+    setDirection(next);
+  }, []);
+
   const clearQuery = useCallback(() => {
     setQuery("");
     setSelection({ start: 0, end: 0 });
@@ -119,81 +135,55 @@ export default function SearchScreen() {
     [query, selection],
   );
 
+  // Stable header identity: featured card + recents label, rebuilt only
+  // when their inputs change so typing never re-renders them.
+  const homeHeader = useMemo(
+    () => (
+      <View style={styles.homeHeader}>
+        <FeaturedWordCard />
+        <SectionHeader
+          title="Recent Lookups"
+          count={recentEntries.length}
+          actionLabel={recentEntries.length > 0 ? "Clear All" : undefined}
+          onAction={recentEntries.length > 0 ? clear : undefined}
+        />
+      </View>
+    ),
+    [recentEntries.length, clear],
+  );
+
+  const resultsHeader = useMemo(
+    () => (
+      <View style={styles.resultsMeta}>
+        <ThemedText variant="resultQuery" selectable>
+          {query.trim()}
+        </ThemedText>
+        <ThemedText variant="bodySm" tone="secondary">
+          {`${results.length} result${results.length === 1 ? "" : "s"} in the local dictionary`}
+        </ThemedText>
+      </View>
+    ),
+    [query, results.length],
+  );
+
   const trimmed = query.trim();
   const isBlank = trimmed.length === 0;
   const searchingEnglish = direction === "en-falam";
   const hasQuery = query.length > 0;
-  const hasRecent = recentEntries.length > 0;
-
-  // Stable header identity: only rebuilt when its inputs change, so typing
-  // in the search field does not re-render the recents header.
-  const recentHeader = useMemo(
-    () => (
-      <View style={styles.sectionLabel}>
-        <ThemedText variant="eyebrow" tone="secondary">
-          RECENT
-        </ThemedText>
-        {hasRecent ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Clear recent searches"
-            onPress={clear}
-            style={styles.clearButton}
-          >
-            <ThemedText variant="label" tone="accent">
-              Clear
-            </ThemedText>
-          </Pressable>
-        ) : null}
-      </View>
-    ),
-    [hasRecent, clear],
-  );
 
   return (
     <Screen>
       <View style={styles.topBlock}>
-        <View style={styles.greeting}>
-          <ThemedText variant="eyebrow" tone="secondary">
-            FALAM DICTIONARY
-          </ThemedText>
-          <ThemedText variant="greeting">Look up a word</ThemedText>
-        </View>
-        <View style={[styles.segmented, { backgroundColor: colors.paper }]}>
-          {DIRECTIONS.map((option) => {
-            const active = direction === option.value;
-            return (
-              <Pressable
-                key={option.value}
-                accessibilityRole="button"
-                accessibilityLabel={`Search ${option.label}`}
-                accessibilityState={{ selected: active }}
-                onPress={() => setDirection(option.value)}
-                style={[
-                  styles.directionOption,
-                  active
-                    ? [
-                        styles.directionActive,
-                        { backgroundColor: colors.surface },
-                      ]
-                    : null,
-                ]}
-              >
-                <ThemedText
-                  variant="label"
-                  tone={active ? "accent" : "secondary"}
-                >
-                  {option.label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
+        <AppHeader title="Search" />
+        <DirectionPill
+          direction={direction}
+          onDirectionChange={handleDirectionChange}
+        />
         <View
           style={[
             styles.searchField,
             {
-              backgroundColor: colors.surface,
+              backgroundColor: colors.paper,
               borderColor: colors.line,
             },
           ]}
@@ -254,47 +244,37 @@ export default function SearchScreen() {
             <ThemedText variant="label">{errorMessage}</ThemedText>
           </View>
         ) : !isBlank ? (
-          <View style={styles.resultsWrap}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Back to search home"
-              onPress={clearQuery}
-              style={styles.backline}
-            >
-              <MaterialIcons name="arrow-back" size={18} color={colors.muted} />
-              <ThemedText variant="bodySm" tone="secondary">
-                Search
-              </ThemedText>
-            </Pressable>
-            <ThemedText variant="resultQuery" selectable>
-              {trimmed}
-            </ThemedText>
-            <ThemedText variant="bodySm" tone="secondary">
-              {`${results.length} result${results.length === 1 ? "" : "s"} in the local dictionary`}
-            </ThemedText>
+          <View style={styles.listFlex}>
             {results.length === 0 ? (
-              <ThemedText variant="bodySm" tone="secondary">
-                Check the spelling or try a shorter prefix.
-              </ThemedText>
-            ) : (
-              <View style={styles.listFlex}>
-                <EntryList
-                  entries={results}
-                  onPressEntry={handlePressEntry}
-                  icon="arrow"
-                  showPosTag
-                />
+              <View style={styles.state}>
+                <ThemedText variant="bodySm" tone="secondary">
+                  Check the spelling or try a shorter prefix.
+                </ThemedText>
               </View>
+            ) : (
+              <WordCardList
+                entries={results}
+                favoriteIds={favoriteIds}
+                showPosTag
+                showRemove={false}
+                onPressEntry={handlePressEntry}
+                onToggleFavorite={handleToggleFavorite}
+                ListHeaderComponent={resultsHeader}
+              />
             )}
           </View>
         ) : (
           <View style={styles.listFlex}>
-            <EntryList
+            <WordCardList
               entries={recentEntries}
-              onPressEntry={handlePressEntry}
-              icon="chevron"
+              favoriteIds={favoriteIds}
               showPosTag={false}
-              ListHeaderComponent={recentHeader}
+              showRemove
+              gap={spacing.sm}
+              onPressEntry={handlePressEntry}
+              onToggleFavorite={handleToggleFavorite}
+              onRemoveEntry={handleRemoveRecent}
+              ListHeaderComponent={homeHeader}
               ListEmptyComponent={RecentEmpty}
             />
           </View>
@@ -310,27 +290,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
   },
-  greeting: {
-    gap: 2,
-    paddingBottom: spacing.xs,
-  },
-  segmented: {
-    borderRadius: 11,
-    borderCurve: "continuous",
-    flexDirection: "row",
-    gap: 2,
-    padding: 3,
-  },
-  directionOption: {
-    alignItems: "center",
-    borderRadius: 8,
-    borderCurve: "continuous",
-    flex: 1,
-    paddingVertical: spacing.sm,
-  },
-  directionActive: {
-    boxShadow: "0 1px 4px rgba(12, 32, 27, 0.12)",
-  },
   searchField: {
     alignItems: "center",
     borderRadius: radius.input,
@@ -340,7 +299,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     minHeight: 62,
     paddingHorizontal: spacing.md,
-    boxShadow: "0 2px 12px rgba(12, 32, 27, 0.08)",
+    boxShadow: "0 4px 16px rgba(12, 32, 27, 0.08)",
   },
   input: {
     flex: 1,
@@ -365,26 +324,13 @@ const styles = StyleSheet.create({
   listFlex: {
     flex: 1,
   },
-  resultsWrap: {
-    flex: 1,
-    gap: spacing.xs,
-    paddingHorizontal: spacing.lg,
-  },
-  backline: {
-    alignItems: "center",
-    alignSelf: "flex-start",
-    flexDirection: "row",
+  homeHeader: {
     gap: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingBottom: spacing.xs,
   },
-  sectionLabel: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: spacing.sm,
-  },
-  clearButton: {
-    padding: spacing.xs,
+  resultsMeta: {
+    gap: 2,
+    paddingBottom: spacing.xs,
   },
   state: {
     alignItems: "center",

@@ -22,12 +22,23 @@ export const falamAudioRegistry: FalamAudioMeta[] = [
     consentNote:
       "Speaker identity and consent unrecorded — obtain before any distribution.",
   },
+  {
+    id: "000002",
+    entryId: "entry_user_015",
+    file: "000002.m4a",
+    verified: false,
+    consentNote:
+      "Speaker identity and consent unrecorded — obtain before any distribution.",
+  },
 ];
 
 /** Bundled-asset source for an audio ID, or undefined when not bundled. */
 export function getFalamAudioSource(audioId: string): number | undefined {
   if (audioId === "000001") {
     return require("../../assets/audio/falam/000001.m4a");
+  }
+  if (audioId === "000002") {
+    return require("../../assets/audio/falam/000002.m4a");
   }
   return undefined;
 }

@@ -220,7 +220,9 @@ export const placeholderEntries: DictionaryEntry[] = [
       english: "water, fluid, serum, juice, soup",
       examples: [{ falam: "Tidai ka in, ti khur, tiva, etc." }],
     },
-  ]),
+  ],
+    { audioId: "000002" },
+  ),
   makeEntry("entry_user_016", "rawl", "noun", [
     { english: "food, diet, victuals, meal, fodder, cooked rice, meat" },
     {

@@ -1,24 +1,26 @@
-// History tab: recently viewed entries, most-recent-first, capped in store.
-// Single honest "Recent" section — no fabricated Today/Yesterday groupings
-// or timestamps, since view times are not recorded.
-// List is FlashList via EntryList (skill 2.6) with a header row for the
-// section label + clear action and an empty state.
+// History tab — Stitch recent-lookups pattern with honest data:
+// AppHeader + section header (count + Clear All) + word cards with star
+// and per-item remove. Single "Recent" section — no fabricated
+// Today/Yesterday groupings or timestamps, since view times are recorded.
 
 import { useCallback, useMemo } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
+import { AppHeader } from "@/components/app-header";
 import { EmptyState } from "@/components/empty-state";
-import { EntryList } from "@/components/entry-list";
 import { Screen } from "@/components/screen";
-import { ThemedText } from "@/components/themed-text";
+import { SectionHeader } from "@/components/section-header";
+import { WordCardList } from "@/components/word-card-list";
 import { dictionaryRepository } from "@/repositories";
+import { useFavorites } from "@/stores/favorites";
 import { useHistory } from "@/stores/history";
 import { spacing } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
 
 export default function HistoryScreen() {
   const { push } = useRouter();
-  const { historyIds, clear } = useHistory();
+  const { historyIds, clear, remove } = useHistory();
+  const { favoriteIds, toggleFavorite } = useFavorites();
 
   const entries = useMemo(
     () =>
@@ -27,7 +29,6 @@ export default function HistoryScreen() {
         .filter((entry): entry is DictionaryEntry => entry !== undefined),
     [historyIds],
   );
-  const hasEntries = entries.length > 0;
 
   const handlePressEntry = useCallback(
     (id: string) => {
@@ -36,70 +37,68 @@ export default function HistoryScreen() {
     [push],
   );
 
-  // Stable header identity: rebuilt only when `clear` changes.
-  const recentHeader = useMemo(
+  const handleToggleFavorite = useCallback(
+    (id: string) => {
+      toggleFavorite(id);
+    },
+    [toggleFavorite],
+  );
+
+  const handleRemove = useCallback(
+    (id: string) => {
+      remove(id);
+    },
+    [remove],
+  );
+
+  const listHeader = useMemo(
     () => (
-      <View style={styles.sectionLabel}>
-        <ThemedText variant="eyebrow" tone="secondary">
-          RECENT
-        </ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Clear all history"
-          onPress={clear}
-          style={styles.clearButton}
-        >
-          <ThemedText variant="label" tone="accent">
-            Clear all
-          </ThemedText>
-        </Pressable>
-      </View>
+      <SectionHeader
+        title="Recent"
+        count={entries.length}
+        actionLabel="Clear all"
+        onAction={clear}
+      />
     ),
-    [clear],
+    [entries.length, clear],
   );
 
   return (
     <Screen>
-      <View style={styles.titleWrap}>
-        <ThemedText variant="pageTitle">History</ThemedText>
+      <View style={styles.topBlock}>
+        <AppHeader title="History" />
       </View>
-      {hasEntries ? (
-        <View style={styles.listFlex}>
-          <EntryList
-            entries={entries}
-            onPressEntry={handlePressEntry}
-            icon="chevron"
-            showPosTag={false}
-            ListHeaderComponent={recentHeader}
-          />
-        </View>
-      ) : (
+      {entries.length === 0 ? (
         <EmptyState
           icon="history"
           title="No recent words"
           copy="Your recent searches will appear here."
         />
+      ) : (
+        <View style={styles.listFlex}>
+          <WordCardList
+            entries={entries}
+            favoriteIds={favoriteIds}
+            showPosTag={false}
+            showRemove
+            onPressEntry={handlePressEntry}
+            onToggleFavorite={handleToggleFavorite}
+            onRemoveEntry={handleRemove}
+            ListHeaderComponent={listHeader}
+          />
+        </View>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  titleWrap: {
+  topBlock: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
   },
   listFlex: {
     flex: 1,
-  },
-  sectionLabel: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: spacing.sm,
-  },
-  clearButton: {
-    padding: spacing.xs,
+    paddingTop: spacing.sm,
   },
 });

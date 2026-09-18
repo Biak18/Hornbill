@@ -1,14 +1,15 @@
-// Favorites tab: saved entries with heart markers, available offline.
-// Header shows an honest count; list is FlashList via EntryList (skill 2.6)
-// with native bottom insets (skill 9.4). Empty state offers a search action.
+// Favorites tab — Stitch wordbook pattern with real data only:
+// AppHeader + word count + word cards (star removes from wordbook).
+// Available offline; empty state links back to search.
 
 import { useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
+import { AppHeader } from "@/components/app-header";
 import { EmptyState } from "@/components/empty-state";
-import { EntryList } from "@/components/entry-list";
 import { Screen } from "@/components/screen";
-import { ThemedText } from "@/components/themed-text";
+import { SectionHeader } from "@/components/section-header";
+import { WordCardList } from "@/components/word-card-list";
 import { dictionaryRepository } from "@/repositories";
 import { useFavorites } from "@/stores/favorites";
 import { spacing } from "@/theme";
@@ -16,7 +17,7 @@ import type { DictionaryEntry } from "@/types/dictionary";
 
 export default function FavoritesScreen() {
   const { push } = useRouter();
-  const { favoriteIds } = useFavorites();
+  const { favoriteIds, toggleFavorite } = useFavorites();
 
   const entries = useMemo(
     () =>
@@ -33,23 +34,30 @@ export default function FavoritesScreen() {
     [push],
   );
 
+  const handleToggleFavorite = useCallback(
+    (id: string) => {
+      toggleFavorite(id);
+    },
+    [toggleFavorite],
+  );
+
   const goSearch = useCallback(() => {
     push("/");
   }, [push]);
 
+  const listHeader = useMemo(
+    () => <SectionHeader title="Saved words" count={entries.length} />,
+    [entries.length],
+  );
+
   return (
     <Screen>
-      <View style={styles.titleWrap}>
-        <ThemedText variant="pageTitle">Favorites</ThemedText>
-        {entries.length > 0 ? (
-          <ThemedText variant="bodySm" tone="secondary">
-            {`${entries.length} saved ${entries.length === 1 ? "word" : "words"} · available offline`}
-          </ThemedText>
-        ) : null}
+      <View style={styles.topBlock}>
+        <AppHeader title="Wordbook" />
       </View>
       {entries.length === 0 ? (
         <EmptyState
-          icon="favorite-border"
+          icon="star-border"
           title="No saved words"
           copy="Save words from any entry and they will wait for you here."
           actionLabel="Search words"
@@ -57,11 +65,14 @@ export default function FavoritesScreen() {
         />
       ) : (
         <View style={styles.listFlex}>
-          <EntryList
+          <WordCardList
             entries={entries}
+            favoriteIds={favoriteIds}
+            showPosTag
+            showRemove={false}
             onPressEntry={handlePressEntry}
-            icon="heart"
-            showPosTag={false}
+            onToggleFavorite={handleToggleFavorite}
+            ListHeaderComponent={listHeader}
           />
         </View>
       )}
@@ -70,13 +81,12 @@ export default function FavoritesScreen() {
 }
 
 const styles = StyleSheet.create({
-  titleWrap: {
+  topBlock: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    gap: 2,
   },
   listFlex: {
     flex: 1,
+    paddingTop: spacing.sm,
   },
 });
