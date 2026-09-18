@@ -54,10 +54,21 @@ const darkPalette: AppPalette = {
   peachSoft: "#3D2515",
 };
 
-export function useAppColors(): AppPalette {
+export type ResolvedScheme = "light" | "dark";
+
+// Single source of truth for light/dark: stored preference wins, OS scheme
+// is the fallback on "system". Both useAppColors() and the navigator's
+// ThemeProvider read this, so nav chrome never disagrees with app surfaces.
+export function useResolvedScheme(): ResolvedScheme {
   const systemScheme = useColorScheme();
   const { preference } = useThemePreference();
-  const scheme =
-    preference === "system" ? (systemScheme ?? "light") : preference;
+  if (preference !== "system") {
+    return preference;
+  }
+  return systemScheme === "dark" ? "dark" : "light";
+}
+
+export function useAppColors(): AppPalette {
+  const scheme = useResolvedScheme();
   return scheme === "dark" ? darkPalette : lightPalette;
 }

@@ -7,7 +7,7 @@ import { AudioSettingsProvider } from "@/stores/audio-settings";
 import { FavoritesProvider } from "@/stores/favorites";
 import { HistoryProvider } from "@/stores/history";
 import { ThemePreferenceProvider } from "@/stores/theme-preference";
-import { useAppColors, useAppFonts } from "@/theme";
+import { useAppColors, useAppFonts, useResolvedScheme } from "@/theme";
 import {
   DarkTheme,
   DefaultTheme,
@@ -16,7 +16,7 @@ import {
 import { Stack } from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { StyleSheet, useColorScheme, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 SplashScreen.preventAutoHideAsync();
@@ -38,8 +38,27 @@ function RootStack() {
   );
 }
 
+// ThemePreferenceProvider sits outermost so the resolved scheme is
+// available to ThemeProvider: nav chrome (headers, tab bar) follows the
+// same stored preference as app surfaces instead of the raw OS scheme.
+function AppChrome() {
+  const scheme = useResolvedScheme();
+  return (
+    <ThemeProvider value={scheme === "dark" ? DarkTheme : DefaultTheme}>
+      <GestureHandlerRootView style={styles.root}>
+        <AudioSettingsProvider>
+          <FavoritesProvider>
+            <HistoryProvider>
+              <RootStack />
+            </HistoryProvider>
+          </FavoritesProvider>
+        </AudioSettingsProvider>
+      </GestureHandlerRootView>
+    </ThemeProvider>
+  );
+}
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const fontsLoaded = useAppFonts();
 
   useEffect(() => {
@@ -53,19 +72,9 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <GestureHandlerRootView style={styles.root}>
-        <ThemePreferenceProvider>
-          <AudioSettingsProvider>
-            <FavoritesProvider>
-              <HistoryProvider>
-                <RootStack />
-              </HistoryProvider>
-            </FavoritesProvider>
-          </AudioSettingsProvider>
-        </ThemePreferenceProvider>
-      </GestureHandlerRootView>
-    </ThemeProvider>
+    <ThemePreferenceProvider>
+      <AppChrome />
+    </ThemePreferenceProvider>
   );
 }
 
