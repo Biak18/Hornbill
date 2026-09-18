@@ -29,10 +29,11 @@ function RootStack() {
         screenOptions={{
           headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
+          headerShown: false,
         }}
       >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="entry/[id]" options={{ title: "Entry" }} />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="entry/[id]" />
       </Stack>
     </View>
   );

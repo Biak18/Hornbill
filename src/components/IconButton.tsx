@@ -13,6 +13,8 @@ type IconButtonProps = {
   onTouchStart?: () => void;
   selected?: boolean;
   size?: number;
+  /** Explicit glyph color. Defaults to peach when selected, muted otherwise. */
+  color?: string;
 };
 
 export function IconButton({
@@ -22,8 +24,10 @@ export function IconButton({
   onTouchStart,
   selected,
   size = 22,
+  color,
 }: IconButtonProps) {
   const colors = useAppColors();
+  const glyphColor = color ?? (selected ? colors.peach : colors.muted2);
   return (
     <Pressable
       accessibilityRole="button"
@@ -34,11 +38,7 @@ export function IconButton({
       hitSlop={8}
       style={styles.button}
     >
-      <MaterialIcons
-        name={name}
-        size={size}
-        color={selected ? colors.peach : colors.muted2}
-      />
+      <MaterialIcons name={name} size={size} color={glyphColor} />
     </Pressable>
   );
 }

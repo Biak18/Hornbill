@@ -10,6 +10,7 @@
 
 import { getFalamAudioSource } from "@/audio/audio-files";
 import { AudioButton } from "@/components/AudioButton";
+import { BackRow } from "@/components/BackRow";
 import { Card, CardBody } from "@/components/Card";
 import { PressableScale } from "@/components/PressableScale";
 import { Screen } from "@/components/Screen";
@@ -22,7 +23,7 @@ import { useHistory } from "@/stores/history";
 import { radius, spacing, useAppColors } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -135,11 +136,16 @@ export default function EntryScreen() {
 
   if (entry === undefined) {
     return (
-      <Screen style={styles.center}>
-        <Text variant="label">Entry not found</Text>
-        <Text variant="bodySm" tone="secondary">
-          It may have been removed from the dataset.
-        </Text>
+      <Screen>
+        <View style={styles.topPad}>
+          <BackRow floating />
+        </View>
+        <View style={styles.center}>
+          <Text variant="label">Entry not found</Text>
+          <Text variant="bodySm" tone="secondary">
+            It may have been removed from the dataset.
+          </Text>
+        </View>
       </Screen>
     );
   }
@@ -159,14 +165,14 @@ export default function EntryScreen() {
 
   return (
     <Screen>
-      {/* Dynamic header title: the headword itself. The layout fallback
-        ("Entry") only shows when the entry can't be resolved. */}
-      <Stack.Screen options={{ title: entry.word }} />
+      {/* Floating glass back row over the scroll content (BackRow carries
+        its own edge padding when floating). Sibling of the ScrollView,
+        rendered after it so it paints above on both platforms. */}
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, styles.contentUnderBar]}
       >
         <Animated.View style={heroStyle}>
           <View
@@ -184,7 +190,10 @@ export default function EntryScreen() {
               <View style={styles.metaChips}>
                 {hasPos ? (
                   <View
-                    style={[styles.metaChip, { backgroundColor: colors.surface2 }]}
+                    style={[
+                      styles.metaChip,
+                      { backgroundColor: colors.surface2 },
+                    ]}
                   >
                     <Text variant="labelSm" tone="accent">
                       {(entry.partOfSpeech as string).toUpperCase()}
@@ -192,7 +201,10 @@ export default function EntryScreen() {
                   </View>
                 ) : null}
                 <View
-                  style={[styles.metaChip, { backgroundColor: colors.surface2 }]}
+                  style={[
+                    styles.metaChip,
+                    { backgroundColor: colors.surface2 },
+                  ]}
                 >
                   <Text variant="labelSm" tone="secondary">
                     {entry.verificationStatus === "draft"
@@ -278,10 +290,7 @@ export default function EntryScreen() {
                     },
                   ]}
                 >
-                  <Text
-                    variant="label"
-                    tone={primary ? "accent" : "secondary"}
-                  >
+                  <Text variant="label" tone={primary ? "accent" : "secondary"}>
                     {String(index + 1)}
                   </Text>
                 </View>
@@ -391,11 +400,21 @@ export default function EntryScreen() {
           </Text>
         </View>
       </Animated.ScrollView>
+      <BackRow floating title={entry.word} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  // Screen-edge padding for the in-flow back row (floating carries its own).
+  topPad: {
+    paddingHorizontal: spacing.lg,
+  },
+  // Clearance for the floating glass bar: bar height (8 + 44 + 5 + 4) plus
+  // breathing room, so the hero never starts tucked under the blur.
+  contentUnderBar: {
+    paddingTop: 72,
+  },
   content: {
     gap: spacing.md,
     padding: spacing.lg,
@@ -403,6 +422,7 @@ const styles = StyleSheet.create({
   },
   center: {
     alignItems: "center",
+    flex: 1,
     gap: spacing.sm,
     justifyContent: "center",
     padding: spacing.lg,
