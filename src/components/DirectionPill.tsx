@@ -8,7 +8,7 @@ import { memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { ThemedText } from "./themed-text";
+import { Text } from "./Text";
 import { useAppColors } from "@/theme/colors";
 import { radius, spacing } from "@/theme";
 import type { SearchDirection } from "@/services/search";
@@ -48,17 +48,17 @@ export const DirectionPill = memo(function DirectionPill({
       ]}
     >
       <View style={styles.side}>
-        <ThemedText variant="label" tone="primary" numberOfLines={1}>
+        <Text variant="label" tone="primary" numberOfLines={1}>
           {sourceLabel}
-        </ThemedText>
+        </Text>
       </View>
       <View style={[styles.swap, { backgroundColor: colors.accentSoft }]}>
         <MaterialIcons name="swap-horiz" size={22} color={colors.accent} />
       </View>
       <View style={styles.side}>
-        <ThemedText variant="label" tone="secondary" numberOfLines={1}>
+        <Text variant="label" tone="secondary" numberOfLines={1}>
           {targetLabel}
-        </ThemedText>
+        </Text>
       </View>
     </Pressable>
   );

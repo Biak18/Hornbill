@@ -6,12 +6,12 @@
 //   never alignSelf/layout swaps. State is boolean ground truth; the
 //   derived offset is computed during render (skill 6.1).
 // - ScrollView root uses contentInsetAdjustmentBehavior automatic (9.4).
-// - Ternary-with-null; strings in ThemedText.
+// - Ternary-with-null; strings in Text.
 
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Screen } from "@/components/screen";
-import { ThemedText } from "@/components/themed-text";
-import { Card } from "@/components/ui";
+import { Card } from "@/components/Card";
+import { Screen } from "@/components/Screen";
+import { Text } from "@/components/Text";
 import { useAudioSettings } from "@/stores/audio-settings";
 import {
   useThemePreference,
@@ -51,7 +51,7 @@ function ThemeSegmented() {
                 : null,
             ]}
           >
-            <ThemedText
+            <Text
               variant="meta"
               tone={active ? "accent" : "secondary"}
               style={active ? styles.activeOption : null}
@@ -61,7 +61,7 @@ function ThemeSegmented() {
                 : option === "light"
                   ? "Light"
                   : "Dark"}
-            </ThemedText>
+            </Text>
           </Pressable>
         );
       })}
@@ -116,10 +116,10 @@ function SettingRow({
   return (
     <View style={styles.settingRow}>
       <View style={styles.settingCopy}>
-        <ThemedText variant="bodySm">{name}</ThemedText>
-        <ThemedText variant="meta" tone="secondary">
+        <Text variant="bodySm">{name}</Text>
+        <Text variant="meta" tone="secondary">
           {detail}
-        </ThemedText>
+        </Text>
       </View>
       {control !== undefined ? control : null}
     </View>
@@ -141,11 +141,11 @@ export default function MoreScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
-        <ThemedText variant="pageTitle">More</ThemedText>
+        <Text variant="pageTitle">More</Text>
         <Card style={{ backgroundColor: colors.surface }}>
-          <ThemedText variant="eyebrow" tone="secondary">
+          <Text variant="eyebrow" tone="secondary">
             APPEARANCE
-          </ThemedText>
+          </Text>
           <SettingRow
             name="Theme"
             detail="Choose how Falam Dictionary looks"
@@ -153,18 +153,18 @@ export default function MoreScreen() {
           />
         </Card>
         <Card style={{ backgroundColor: colors.surface }}>
-          <ThemedText variant="eyebrow" tone="secondary">
+          <Text variant="eyebrow" tone="secondary">
             LANGUAGE
-          </ThemedText>
+          </Text>
           <SettingRow
             name="Dictionary direction"
             detail="Falam ⇄ English · switch on Search"
           />
         </Card>
         <Card style={{ backgroundColor: colors.surface }}>
-          <ThemedText variant="eyebrow" tone="secondary">
+          <Text variant="eyebrow" tone="secondary">
             AUDIO
-          </ThemedText>
+          </Text>
           <SettingRow
             name="English pronunciation"
             detail="Use device voice"
@@ -189,9 +189,9 @@ export default function MoreScreen() {
           />
         </Card>
         <Card style={{ backgroundColor: colors.surface }}>
-          <ThemedText variant="eyebrow" tone="secondary">
+          <Text variant="eyebrow" tone="secondary">
             ABOUT
-          </ThemedText>
+          </Text>
           <SettingRow
             name="Dictionary information"
             detail="User-contributed words · unverified drafts"

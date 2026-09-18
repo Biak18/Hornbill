@@ -1,15 +1,15 @@
 // Favorites tab — Stitch wordbook pattern with real data only:
-// AppHeader + word count + word cards (star removes from wordbook).
+// Header + word count + word cards (star removes from wordbook).
 // Available offline; empty state links back to search.
 
 import { useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { AppHeader } from "@/components/app-header";
-import { EmptyState } from "@/components/empty-state";
-import { Screen } from "@/components/screen";
-import { SectionHeader } from "@/components/section-header";
-import { WordCardList } from "@/components/word-card-list";
+import { EmptyState } from "@/components/EmptyState";
+import { Header } from "@/components/Header";
+import { Screen } from "@/components/Screen";
+import { SectionHeader } from "@/components/SectionHeader";
+import { WordList } from "@/components/WordList";
 import { dictionaryRepository } from "@/repositories";
 import { useFavorites } from "@/stores/favorites";
 import { spacing } from "@/theme";
@@ -53,7 +53,7 @@ export default function FavoritesScreen() {
   return (
     <Screen>
       <View style={styles.topBlock}>
-        <AppHeader title="Wordbook" />
+        <Header title="Wordbook" />
       </View>
       {entries.length === 0 ? (
         <EmptyState
@@ -65,7 +65,7 @@ export default function FavoritesScreen() {
         />
       ) : (
         <View style={styles.listFlex}>
-          <WordCardList
+          <WordList
             entries={entries}
             favoriteIds={favoriteIds}
             showPosTag

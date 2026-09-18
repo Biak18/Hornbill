@@ -1,5 +1,5 @@
-// Lookup row — Stitch wordbook card adapted to our data and theme:
-// headword + phonetic, gloss, POS tag, star (wordbook save), optional
+// WordCard — Stitch wordbook card adapted to our data and theme:
+// headword + phonetic, gloss, Chip, star (wordbook save), optional
 // remove, whole card opens the entry. Deliberately no per-row audio
 // player: rows stay side-effect-free and lightweight (list-performance
 // rule) while audio lives on the entry screen, which owns its player.
@@ -8,20 +8,19 @@
 
 import { memo, useCallback, useMemo, useRef } from "react";
 import {
-  Pressable,
   StyleSheet,
   View,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
 import { Pressable as GesturePressable } from "react-native-gesture-handler";
-import { MaterialIcons } from "@expo/vector-icons";
-import { PosTag } from "./pos-chip";
-import { ThemedText } from "./themed-text";
+import { Chip } from "./Chip";
+import { IconButton } from "./IconButton";
+import { Text } from "./Text";
 import { useAppColors } from "@/theme/colors";
 import { radius, spacing } from "@/theme";
 
-type LookupRowProps = {
+type WordCardProps = {
   id: string;
   word: string;
   phonetic?: string;
@@ -34,7 +33,7 @@ type LookupRowProps = {
   onRemove?: (id: string) => void;
 };
 
-export const LookupRow = memo(function LookupRow({
+export const WordCard = memo(function WordCard({
   id,
   word,
   phonetic,
@@ -45,7 +44,7 @@ export const LookupRow = memo(function LookupRow({
   onPress,
   onToggleFavorite,
   onRemove,
-}: LookupRowProps) {
+}: WordCardProps) {
   const colors = useAppColors();
 
   // Nested-press guard: the star/remove buttons sit inside the card press
@@ -94,49 +93,38 @@ export const LookupRow = memo(function LookupRow({
       <View style={styles.top}>
         <View style={styles.copy}>
           <View style={styles.headline}>
-            <ThemedText variant="wordRow" selectable>
+            <Text variant="wordRow" selectable>
               {word}
-            </ThemedText>
+            </Text>
             {hasPhonetic ? (
-              <ThemedText variant="meta" tone="faint" numberOfLines={1}>
+              <Text variant="meta" tone="faint" numberOfLines={1}>
                 {phonetic as string}
-              </ThemedText>
+              </Text>
             ) : null}
           </View>
-          <ThemedText variant="bodySm" tone="secondary" numberOfLines={2}>
+          <Text variant="bodySm" tone="secondary" numberOfLines={2}>
             {meaning}
-          </ThemedText>
-          {hasPosTag ? <PosTag label={posTag as string} /> : null}
+          </Text>
+          {hasPosTag ? <Chip label={posTag as string} /> : null}
         </View>
         <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="button"
+          <IconButton
+            name={isFavorite ? "star" : "star-border"}
             accessibilityLabel={
               isFavorite ? `Remove ${word} from wordbook` : `Save ${word} to wordbook`
             }
-            accessibilityState={{ selected: isFavorite }}
+            selected={isFavorite}
             onPress={handleStar}
             onTouchStart={markInnerPress}
-            hitSlop={8}
-            style={styles.iconButton}
-          >
-            <MaterialIcons
-              name={isFavorite ? "star" : "star-border"}
-              size={22}
-              color={isFavorite ? colors.peach : colors.muted2}
-            />
-          </Pressable>
+          />
           {canRemove ? (
-            <Pressable
-              accessibilityRole="button"
+            <IconButton
+              name="close"
               accessibilityLabel={`Remove ${word} from list`}
               onPress={handleRemove}
               onTouchStart={markInnerPress}
-              hitSlop={8}
-              style={styles.iconButton}
-            >
-              <MaterialIcons name="close" size={18} color={colors.muted2} />
-            </Pressable>
+              size={18}
+            />
           ) : null}
         </View>
       </View>
@@ -176,11 +164,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexShrink: 0,
     gap: 2,
-  },
-  iconButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-    minWidth: 44,
   },
 });

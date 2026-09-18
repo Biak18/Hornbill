@@ -5,7 +5,7 @@
 import { StyleSheet, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
-import { ThemedText } from "./themed-text";
+import { Text } from "./Text";
 import { useAppColors } from "@/theme/colors";
 import { radius, spacing } from "@/theme";
 
@@ -34,10 +34,10 @@ export function EmptyState({
       <View style={[styles.symbol, { backgroundColor: colors.accentSoft }]}>
         <MaterialIcons name={icon} size={28} color={colors.accent} />
       </View>
-      <ThemedText variant="label">{title}</ThemedText>
-      <ThemedText variant="bodySm" tone="secondary" style={styles.copy}>
+      <Text variant="label">{title}</Text>
+      <Text variant="bodySm" tone="secondary" style={styles.copy}>
         {copy}
-      </ThemedText>
+      </Text>
       {hasAction ? (
         <Pressable
           accessibilityRole="button"
@@ -45,9 +45,9 @@ export function EmptyState({
           onPress={onAction}
           style={[styles.action, { backgroundColor: colors.accentSoft }]}
         >
-          <ThemedText variant="label" tone="accent">
+          <Text variant="label" tone="accent">
             {actionLabel}
-          </ThemedText>
+          </Text>
         </Pressable>
       ) : null}
     </View>

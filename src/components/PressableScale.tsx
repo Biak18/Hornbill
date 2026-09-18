@@ -5,7 +5,7 @@
 // - UI-thread press state via GestureDetector Tap (skill 3.3); JS callback
 //   runs via scheduleOnRN. Uses .get()/.set() for React Compiler compat (skill 8.2).
 // - Children are ReactNode (compound-friendly, skill 10.1) — never a raw
-//   string; callers wrap text in ThemedText.
+//   string; callers wrap text in Text.
 
 import { useMemo, type ReactNode } from "react";
 import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";

@@ -1,18 +1,16 @@
-// Falam pronunciation button.
+// AudioButton — Falam pronunciation button.
 // Plays a bundled native-speaker recording via expo-audio; the player is
 // owned by this component and released on unmount. Rendered only when the
 // entry resolves to a bundled source — never as a dead control.
-// Skill: hoisted press callback (no inline closure), memoized pill style
-// (no inline object per render), ternary-with-null, strings in ThemedText.
 
 import { useCallback, useEffect, useMemo } from "react";
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { ThemedText } from "@/components/themed-text";
+import { Text } from "@/components/Text";
 import { radius, spacing, useAppColors } from "@/theme";
 
-export function FalamAudioButton({
+export function AudioButton({
   source,
   onPlayingChange,
 }: {
@@ -63,9 +61,9 @@ export function FalamAudioButton({
         size={20}
         color={colors.surface}
       />
-      <ThemedText variant="label" tone="onAccent">
+      <Text variant="label" tone="onAccent">
         {playing ? "Playing…" : "Listen in Falam"}
-      </ThemedText>
+      </Text>
     </Pressable>
   );
 }

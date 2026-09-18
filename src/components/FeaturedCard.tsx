@@ -1,4 +1,4 @@
-// Featured word card — Stitch "Word of the Day" pattern with honest data:
+// FeaturedCard — Stitch "Word of the Day" pattern with honest data:
 // a deterministic daily pick from real dictionary entries (day number
 // modulo dataset size), never invented content. Star toggles the real
 // wordbook favorite; audio plays only when the entry resolves to a bundled
@@ -6,15 +6,16 @@
 // Tapping the card opens the full entry.
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Pressable as GesturePressable } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { getFalamAudioSource } from "@/audio/audio-files";
-import { FalamAudioButton } from "@/audio/falam-audio-button";
-import { PosTag } from "./pos-chip";
-import { ThemedText } from "./themed-text";
-import { WaveBars } from "./wave-bars";
+import { AudioButton } from "./AudioButton";
+import { Chip } from "./Chip";
+import { IconButton } from "./IconButton";
+import { Text } from "./Text";
+import { WaveBar } from "./WaveBar";
 import { dictionaryRepository } from "@/repositories";
 import { useAudioSettings } from "@/stores/audio-settings";
 import { useFavorites } from "@/stores/favorites";
@@ -32,7 +33,7 @@ function pickFeatured(): DictionaryEntry | undefined {
   return entries[dayNumber % entries.length];
 }
 
-export function FeaturedWordCard() {
+export function FeaturedCard() {
   const colors = useAppColors();
   const { push } = useRouter();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -46,7 +47,7 @@ export function FeaturedWordCard() {
     setAudioPlaying(next);
   }, []);
 
-  // Nested-press guard (see LookupRow): star/audio touches mark the time
+  // Nested-press guard (see WordCard): star/audio touches mark the time
   // at touch-down so the card ignores the press they consume.
   const innerPressAt = useRef(0);
   const markInnerPress = useCallback(() => {
@@ -100,44 +101,36 @@ export function FeaturedWordCard() {
       style={({ pressed }) => [cardStyle, pressed ? styles.pressed : null]}
     >
       <View style={styles.eyebrowRow}>
-        <ThemedText variant="eyebrow" tone="secondary">
+        <Text variant="eyebrow" tone="secondary">
           FEATURED WORD
-        </ThemedText>
-        <Pressable
-          accessibilityRole="button"
+        </Text>
+        <IconButton
+          name={favorite ? "star" : "star-border"}
           accessibilityLabel={
             favorite
               ? `Remove ${entry.word} from wordbook`
               : `Save ${entry.word} to wordbook`
           }
-          accessibilityState={{ selected: favorite }}
+          selected={favorite}
           onPress={handleStar}
           onTouchStart={markInnerPress}
-          hitSlop={8}
-          style={styles.star}
-        >
-          <MaterialIcons
-            name={favorite ? "star" : "star-border"}
-            size={22}
-            color={favorite ? colors.peach : colors.muted2}
-          />
-        </Pressable>
+        />
       </View>
       <View style={styles.headline}>
-        <ThemedText variant="resultQuery" selectable>
+        <Text variant="resultQuery" selectable>
           {entry.word}
-        </ThemedText>
+        </Text>
         {hasPhonetic ? (
-          <ThemedText variant="bodySm" tone="secondary" selectable>
+          <Text variant="bodySm" tone="secondary" selectable>
             {entry.pronunciation as string}
-          </ThemedText>
+          </Text>
         ) : null}
-        {hasPos ? <PosTag label={entry.partOfSpeech as string} /> : null}
+        {hasPos ? <Chip label={entry.partOfSpeech as string} /> : null}
       </View>
       <View style={styles.audioRow}>
         {canPlayAudio ? (
           <View onTouchStart={markInnerPress}>
-            <FalamAudioButton
+            <AudioButton
               source={audioSource as number}
               onPlayingChange={handlePlayingChange}
             />
@@ -145,29 +138,29 @@ export function FeaturedWordCard() {
         ) : (
           <View style={[styles.audioNote, { backgroundColor: colors.surface2 }]}>
             <MaterialIcons name="volume-off" size={16} color={colors.muted} />
-            <ThemedText variant="labelSm" tone="secondary">
+            <Text variant="labelSm" tone="secondary">
               Audio unavailable
-            </ThemedText>
+            </Text>
           </View>
         )}
-        <WaveBars color={colors.accent} active={audioPlaying} />
+        <WaveBar color={colors.accent} active={audioPlaying} />
       </View>
       {firstSense !== undefined ? (
-        <ThemedText variant="definition" selectable>
+        <Text variant="definition" selectable>
           {firstSense.english}
-        </ThemedText>
+        </Text>
       ) : null}
       {firstExample !== undefined ? (
         <View style={[styles.example, { backgroundColor: colors.surface2 }]}>
           <MaterialIcons name="format-quote" size={18} color={colors.accent} />
           <View style={styles.exampleCopy}>
-            <ThemedText variant="exampleFal" selectable>
+            <Text variant="exampleFal" selectable>
               {firstExample.falam}
-            </ThemedText>
+            </Text>
             {firstExample.english.length > 0 ? (
-              <ThemedText variant="bodySm" tone="secondary">
+              <Text variant="bodySm" tone="secondary">
                 {firstExample.english}
-              </ThemedText>
+              </Text>
             ) : null}
           </View>
         </View>
@@ -192,12 +185,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-  },
-  star: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-    minWidth: 44,
   },
   headline: {
     gap: spacing.xs,

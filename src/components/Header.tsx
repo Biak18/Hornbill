@@ -1,29 +1,29 @@
-// App header — original brand block (Stitch-inspired structure, our identity).
+// Header — original brand block (Stitch-inspired structure, our identity).
 // Eyebrow brand + section title on the left; honest "Offline Ready" badge on
 // the right (the dictionary is offline-first per PRD §7). No logo image,
 // no avatar, no third-party branding (AGENTS.md §17).
 
 import { StyleSheet, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { ThemedText } from "./themed-text";
+import { Text } from "./Text";
 import { useAppColors } from "@/theme/colors";
 import { radius, spacing } from "@/theme";
 
-export function AppHeader({ title }: { title: string }) {
+export function Header({ title }: { title: string }) {
   const colors = useAppColors();
   return (
     <View style={styles.wrap}>
       <View style={styles.brand}>
-        <ThemedText variant="eyebrow" tone="secondary">
+        <Text variant="eyebrow" tone="secondary">
           FALAM DICTIONARY
-        </ThemedText>
-        <ThemedText variant="greeting">{title}</ThemedText>
+        </Text>
+        <Text variant="greeting">{title}</Text>
       </View>
       <View style={[styles.badge, { backgroundColor: colors.surface2 }]}>
         <MaterialIcons name="check-circle" size={14} color={colors.accent} />
-        <ThemedText variant="labelSm" tone="accent">
+        <Text variant="labelSm" tone="accent">
           Offline Ready
-        </ThemedText>
+        </Text>
       </View>
     </View>
   );

@@ -1,4 +1,4 @@
-// Wave bars — audio glyph used beside audio controls (Stitch
+// WaveBar — audio glyph used beside audio controls (Stitch
 // detail/wordbook pattern). Bars pulse while `active` (driven by the real
 // player status from the adjacent audio button) and rest flat otherwise.
 // GPU-only: per-bar scaleY on the UI thread via Reanimated; staggered with
@@ -66,7 +66,7 @@ const AnimatedBar = memo(function AnimatedBar({
   );
 });
 
-export const WaveBars = memo(function WaveBars({
+export const WaveBar = memo(function WaveBar({
   color,
   active = false,
 }: {

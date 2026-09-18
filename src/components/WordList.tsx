@@ -1,6 +1,6 @@
-// Word card list — FlashList wrapper shared by search results, recents,
+// WordList — FlashList wrapper shared by search results, recents,
 // favorites, and history (virtualizer for every list; stable key extractor;
-// renderItem passes primitives so LookupRow memoization holds; a single
+// renderItem passes primitives so WordCard memoization holds; a single
 // onPress/onToggleFavorite/onRemove instance flows down and rows call back
 // with their id). Favorite state is read once here, never inside rows.
 
@@ -14,7 +14,7 @@ import {
   type ReactElement,
 } from "react";
 import { StyleSheet, View } from "react-native";
-import { LookupRow } from "./lookup-row";
+import { WordCard } from "./WordCard";
 
 const keyExtractor = (item: DictionaryEntry): string => item.id;
 
@@ -22,7 +22,7 @@ function firstMeaning(entry: DictionaryEntry): string {
   return entry.definitions[0]?.english ?? "";
 }
 
-type WordCardListProps = {
+type WordListProps = {
   entries: DictionaryEntry[];
   favoriteIds: ReadonlySet<string>;
   showPosTag: boolean;
@@ -36,7 +36,7 @@ type WordCardListProps = {
   ListEmptyComponent?: ComponentType | ReactElement | null;
 };
 
-export function WordCardList({
+export function WordList({
   entries,
   favoriteIds,
   showPosTag,
@@ -47,10 +47,10 @@ export function WordCardList({
   onRemoveEntry,
   ListHeaderComponent,
   ListEmptyComponent,
-}: WordCardListProps) {
+}: WordListProps) {
   const renderItem = useCallback(
     ({ item }: { item: DictionaryEntry }) => (
-      <LookupRow
+      <WordCard
         id={item.id}
         word={item.word}
         phonetic={item.pronunciation}

@@ -6,14 +6,15 @@
 // → notes → status/source. Only resolved references navigate, never dead.
 // Skill rules: scroll position in a shared value (never useState); hero
 // motion derives from it via transform/opacity only; PressableScale chips;
-// automatic scroll insets; ternary-with-null; strings in ThemedText.
+// automatic scroll insets; ternary-with-null; strings in Text.
 
 import { getFalamAudioSource } from "@/audio/audio-files";
-import { FalamAudioButton } from "@/audio/falam-audio-button";
-import { Screen } from "@/components/screen";
-import { ThemedText } from "@/components/themed-text";
-import { Card, CardBody, PressableScale } from "@/components/ui";
-import { WaveBars } from "@/components/wave-bars";
+import { AudioButton } from "@/components/AudioButton";
+import { Card, CardBody } from "@/components/Card";
+import { PressableScale } from "@/components/PressableScale";
+import { Screen } from "@/components/Screen";
+import { Text } from "@/components/Text";
+import { WaveBar } from "@/components/WaveBar";
 import { dictionaryRepository } from "@/repositories";
 import { useAudioSettings } from "@/stores/audio-settings";
 import { useFavorites } from "@/stores/favorites";
@@ -58,9 +59,9 @@ function ChipGroup({
     <Card style={[styles.group, { backgroundColor: colors.paper }]}>
       <View style={styles.groupTitle}>
         <View style={[styles.dot, { backgroundColor: dotColor }]} />
-        <ThemedText variant="eyebrow" tone="secondary">
+        <Text variant="eyebrow" tone="secondary">
           {title.toUpperCase()}
-        </ThemedText>
+        </Text>
       </View>
       <View style={styles.chips}>
         {resolved.map((entry) => (
@@ -70,7 +71,7 @@ function ChipGroup({
             onPress={() => onPressEntry(entry.id)}
             style={[styles.chip, { backgroundColor: colors.surface2 }]}
           >
-            <ThemedText variant="label">{entry.word}</ThemedText>
+            <Text variant="label">{entry.word}</Text>
             <MaterialIcons
               name="arrow-forward"
               size={14}
@@ -135,10 +136,10 @@ export default function EntryScreen() {
   if (entry === undefined) {
     return (
       <Screen style={styles.center}>
-        <ThemedText variant="label">Entry not found</ThemedText>
-        <ThemedText variant="bodySm" tone="secondary">
+        <Text variant="label">Entry not found</Text>
+        <Text variant="bodySm" tone="secondary">
           It may have been removed from the dataset.
-        </ThemedText>
+        </Text>
       </Screen>
     );
   }
@@ -185,21 +186,21 @@ export default function EntryScreen() {
                   <View
                     style={[styles.metaChip, { backgroundColor: colors.surface2 }]}
                   >
-                    <ThemedText variant="labelSm" tone="accent">
+                    <Text variant="labelSm" tone="accent">
                       {(entry.partOfSpeech as string).toUpperCase()}
-                    </ThemedText>
+                    </Text>
                   </View>
                 ) : null}
                 <View
                   style={[styles.metaChip, { backgroundColor: colors.surface2 }]}
                 >
-                  <ThemedText variant="labelSm" tone="secondary">
+                  <Text variant="labelSm" tone="secondary">
                     {entry.verificationStatus === "draft"
                       ? "Draft"
                       : entry.verificationStatus === "reviewed"
                         ? "Reviewed"
                         : "Verified"}
-                  </ThemedText>
+                  </Text>
                 </View>
               </View>
               <PressableScale
@@ -219,20 +220,20 @@ export default function EntryScreen() {
               </PressableScale>
             </View>
             <View style={styles.headline}>
-              <ThemedText variant="wordHero" selectable>
+              <Text variant="wordHero" selectable>
                 {entry.word}
-              </ThemedText>
+              </Text>
               {hasPhonetic ? (
-                <ThemedText variant="phonetic" tone="secondary" selectable>
+                <Text variant="phonetic" tone="secondary" selectable>
                   {entry.pronunciation as string}
-                </ThemedText>
+                </Text>
               ) : null}
             </View>
             <View
               style={[styles.audioBar, { backgroundColor: colors.surface2 }]}
             >
               {canPlayAudio ? (
-                <FalamAudioButton
+                <AudioButton
                   source={audioSource as number}
                   onPlayingChange={handlePlayingChange}
                 />
@@ -243,14 +244,14 @@ export default function EntryScreen() {
                     size={18}
                     color={colors.muted}
                   />
-                  <ThemedText variant="label" tone="secondary">
+                  <Text variant="label" tone="secondary">
                     {!falamAudioEnabled
                       ? "Recordings off — enable in More → Audio"
                       : "Audio unavailable"}
-                  </ThemedText>
+                  </Text>
                 </View>
               )}
-              <WaveBars color={colors.accent} active={audioPlaying} />
+              <WaveBar color={colors.accent} active={audioPlaying} />
             </View>
           </View>
         </Animated.View>
@@ -277,21 +278,21 @@ export default function EntryScreen() {
                     },
                   ]}
                 >
-                  <ThemedText
+                  <Text
                     variant="label"
                     tone={primary ? "accent" : "secondary"}
                   >
                     {String(index + 1)}
-                  </ThemedText>
+                  </Text>
                 </View>
-                <ThemedText variant="eyebrow" tone="secondary">
+                <Text variant="eyebrow" tone="secondary">
                   {multiSense ? `MEANING ${index + 1}` : "ENGLISH MEANING"}
-                </ThemedText>
+                </Text>
               </View>
               <CardBody>
-                <ThemedText variant="definition" selectable>
+                <Text variant="definition" selectable>
                   {sense.english}
-                </ThemedText>
+                </Text>
                 {hasExamples ? (
                   <View style={styles.examples}>
                     <View style={styles.examplesLabel}>
@@ -300,9 +301,9 @@ export default function EntryScreen() {
                         size={14}
                         color={colors.muted}
                       />
-                      <ThemedText variant="labelSm" tone="faint">
+                      <Text variant="labelSm" tone="faint">
                         EXAMPLES
-                      </ThemedText>
+                      </Text>
                     </View>
                     {(sense.examples ?? []).map((example) => (
                       <View
@@ -312,13 +313,13 @@ export default function EntryScreen() {
                           { backgroundColor: colors.surface2 },
                         ]}
                       >
-                        <ThemedText variant="exampleFal" selectable>
+                        <Text variant="exampleFal" selectable>
                           {example.falam}
-                        </ThemedText>
+                        </Text>
                         {example.english.length > 0 ? (
-                          <ThemedText variant="bodySm" tone="secondary">
+                          <Text variant="bodySm" tone="secondary">
                             {example.english}
-                          </ThemedText>
+                          </Text>
                         ) : null}
                       </View>
                     ))}
@@ -359,35 +360,35 @@ export default function EntryScreen() {
               { backgroundColor: colors.paper, borderColor: colors.line },
             ]}
           >
-            <ThemedText variant="eyebrow" tone="secondary">
+            <Text variant="eyebrow" tone="secondary">
               NOTE
-            </ThemedText>
+            </Text>
             <CardBody>
-              <ThemedText variant="bodySm" tone="secondary" selectable>
+              <Text variant="bodySm" tone="secondary" selectable>
                 {entry.notes as string}
-              </ThemedText>
+              </Text>
             </CardBody>
           </Card>
         ) : null}
         <View style={styles.block}>
-          <ThemedText variant="eyebrow" tone="secondary">
+          <Text variant="eyebrow" tone="secondary">
             STATUS
-          </ThemedText>
-          <ThemedText variant="bodySm" tone="secondary">
+          </Text>
+          <Text variant="bodySm" tone="secondary">
             {entry.verificationStatus === "draft"
               ? "Draft · contributed wordlist, awaiting verification"
               : entry.verificationStatus === "reviewed"
                 ? "Reviewed · awaiting final verification"
                 : "Verified · reviewed by a knowledgeable speaker"}
-          </ThemedText>
+          </Text>
         </View>
         <View style={styles.block}>
-          <ThemedText variant="eyebrow" tone="secondary">
+          <Text variant="eyebrow" tone="secondary">
             SOURCE
-          </ThemedText>
-          <ThemedText variant="bodySm" tone="faint">
+          </Text>
+          <Text variant="bodySm" tone="faint">
             {`${entry.source?.sourceName ?? "Unknown"} · pronunciation recording not available`}
-          </ThemedText>
+          </Text>
         </View>
       </Animated.ScrollView>
     </Screen>

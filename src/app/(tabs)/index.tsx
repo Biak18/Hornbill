@@ -1,20 +1,20 @@
 // Search home — Stitch "Translate & Search Home" structure adapted to a
 // dictionary-first app with our own identity (no translator, camera, or
 // third-party branding per AGENTS.md §16/§17):
-// AppHeader → DirectionPill → elevated search card → tone chips →
+// Header → DirectionPill → elevated search card → tone chips →
 // featured word + recent lookups (blank) or live results (typing).
-// Skill rules: FlashList via WordCardList; derived-only state; caret-aware
+// Skill rules: FlashList via WordList; derived-only state; caret-aware
 // diacritic insert; stable header/empty identities; gap/boxShadow styling.
 
-import { AppHeader } from "@/components/app-header";
-import { DirectionPill } from "@/components/direction-pill";
-import { EmptyState } from "@/components/empty-state";
-import { FeaturedWordCard } from "@/components/featured-word-card";
-import { Screen } from "@/components/screen";
-import { SectionHeader } from "@/components/section-header";
-import { ThemedText } from "@/components/themed-text";
-import { PressableScale } from "@/components/ui";
-import { WordCardList } from "@/components/word-card-list";
+import { DirectionPill } from "@/components/DirectionPill";
+import { EmptyState } from "@/components/EmptyState";
+import { FeaturedCard } from "@/components/FeaturedCard";
+import { Header } from "@/components/Header";
+import { PressableScale } from "@/components/PressableScale";
+import { Screen } from "@/components/Screen";
+import { SectionHeader } from "@/components/SectionHeader";
+import { Text } from "@/components/Text";
+import { WordList } from "@/components/WordList";
 import { dictionaryRepository } from "@/repositories";
 import { searchDictionary, type SearchDirection } from "@/services/search";
 import { useFavorites } from "@/stores/favorites";
@@ -140,7 +140,7 @@ export default function SearchScreen() {
   const homeHeader = useMemo(
     () => (
       <View style={styles.homeHeader}>
-        <FeaturedWordCard />
+        <FeaturedCard />
         <SectionHeader
           title="Recent Lookups"
           count={recentEntries.length}
@@ -155,12 +155,12 @@ export default function SearchScreen() {
   const resultsHeader = useMemo(
     () => (
       <View style={styles.resultsMeta}>
-        <ThemedText variant="resultQuery" selectable>
+        <Text variant="resultQuery" selectable>
           {query.trim()}
-        </ThemedText>
-        <ThemedText variant="bodySm" tone="secondary">
+        </Text>
+        <Text variant="bodySm" tone="secondary">
           {`${results.length} result${results.length === 1 ? "" : "s"} in the local dictionary`}
-        </ThemedText>
+        </Text>
       </View>
     ),
     [query, results.length],
@@ -174,7 +174,7 @@ export default function SearchScreen() {
   return (
     <Screen>
       <View style={styles.topBlock}>
-        <AppHeader title="Search" />
+        <Header title="Search" />
         <DirectionPill
           direction={direction}
           onDirectionChange={handleDirectionChange}
@@ -220,9 +220,9 @@ export default function SearchScreen() {
         </View>
         {searchingEnglish ? null : (
           <View style={styles.diacriticRow}>
-            <ThemedText variant="labelSm" tone="faint">
+            <Text variant="labelSm" tone="faint">
               Tones:
-            </ThemedText>
+            </Text>
             {DIACRITICS.map((mark) => (
               <PressableScale
                 key={mark}
@@ -230,9 +230,9 @@ export default function SearchScreen() {
                 onPress={() => insertDiacritic(mark)}
                 style={styles.diacriticKey}
               >
-                <ThemedText variant="body" tone="accent">
+                <Text variant="body" tone="accent">
                   {mark}
-                </ThemedText>
+                </Text>
               </PressableScale>
             ))}
           </View>
@@ -241,18 +241,18 @@ export default function SearchScreen() {
       <View style={styles.body}>
         {errorMessage !== null ? (
           <View style={styles.state}>
-            <ThemedText variant="label">{errorMessage}</ThemedText>
+            <Text variant="label">{errorMessage}</Text>
           </View>
         ) : !isBlank ? (
           <View style={styles.listFlex}>
             {results.length === 0 ? (
               <View style={styles.state}>
-                <ThemedText variant="bodySm" tone="secondary">
+                <Text variant="bodySm" tone="secondary">
                   Check the spelling or try a shorter prefix.
-                </ThemedText>
+                </Text>
               </View>
             ) : (
-              <WordCardList
+              <WordList
                 entries={results}
                 favoriteIds={favoriteIds}
                 showPosTag
@@ -265,7 +265,7 @@ export default function SearchScreen() {
           </View>
         ) : (
           <View style={styles.listFlex}>
-            <WordCardList
+            <WordList
               entries={recentEntries}
               favoriteIds={favoriteIds}
               showPosTag={false}

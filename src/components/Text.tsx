@@ -1,7 +1,7 @@
 // Single text primitive: `variant` picks a polished-system ramp size,
 // `tone` picks a palette color. Screens never touch fontSize or hex values.
 
-import { Text, type TextProps } from "react-native";
+import { Text as RNText, type TextProps } from "react-native";
 import { useAppColors, type AppPalette } from "@/theme/colors";
 import { type } from "@/theme/typography";
 
@@ -22,7 +22,7 @@ const toneKey: Record<TextTone, keyof AppPalette> = {
   onAccent: "surface",
 };
 
-export function ThemedText({
+export function Text({
   variant = "body",
   tone = "primary",
   style,
@@ -30,6 +30,9 @@ export function ThemedText({
 }: TextProps & { variant?: keyof typeof type; tone?: TextTone }) {
   const colors = useAppColors();
   return (
-    <Text style={[type[variant], { color: colors[toneKey[tone]] }, style]} {...props} />
+    <RNText
+      style={[type[variant], { color: colors[toneKey[tone]] }, style]}
+      {...props}
+    />
   );
 }

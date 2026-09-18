@@ -6,7 +6,7 @@ import { radius, spacing } from "@/theme";
 import { useAppColors } from "@/theme/colors";
 import { memo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { ThemedText } from "./themed-text";
+import { Text } from "./Text";
 
 type SectionHeaderProps = {
   title: string;
@@ -30,12 +30,12 @@ export const SectionHeader = memo(function SectionHeader({
   return (
     <View style={styles.wrap}>
       <View style={styles.left}>
-        <ThemedText variant="wordRow">{title}</ThemedText>
+        <Text variant="wordRow">{title}</Text>
         {showCount ? (
           <View style={[styles.badge, { backgroundColor: colors.surface2 }]}>
-            <ThemedText variant="labelSm" tone="secondary">
+            <Text variant="labelSm" tone="secondary">
               {String(count as number)}
-            </ThemedText>
+            </Text>
           </View>
         ) : null}
       </View>
@@ -46,9 +46,9 @@ export const SectionHeader = memo(function SectionHeader({
           onPress={onAction}
           style={styles.action}
         >
-          <ThemedText variant="label" tone="accent">
+          <Text variant="label" tone="accent">
             {actionLabel}
-          </ThemedText>
+          </Text>
         </Pressable>
       ) : null}
     </View>

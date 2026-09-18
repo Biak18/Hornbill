@@ -1,6 +1,6 @@
 // Polished-system type ramp: DM Sans for UI, Noto Sans for linguistic
 // content (headwords, examples). Sizes only — color comes from `tone`
-// in ThemedText (hook-only boundary).
+// in Text (hook-only boundary).
 
 import type { TextStyle } from "react-native";
 

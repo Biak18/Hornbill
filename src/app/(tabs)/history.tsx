@@ -1,16 +1,16 @@
 // History tab — Stitch recent-lookups pattern with honest data:
-// AppHeader + section header (count + Clear All) + word cards with star
+// Header + section header (count + Clear All) + word cards with star
 // and per-item remove. Single "Recent" section — no fabricated
 // Today/Yesterday groupings or timestamps, since view times are recorded.
 
 import { useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { AppHeader } from "@/components/app-header";
-import { EmptyState } from "@/components/empty-state";
-import { Screen } from "@/components/screen";
-import { SectionHeader } from "@/components/section-header";
-import { WordCardList } from "@/components/word-card-list";
+import { EmptyState } from "@/components/EmptyState";
+import { Header } from "@/components/Header";
+import { Screen } from "@/components/Screen";
+import { SectionHeader } from "@/components/SectionHeader";
+import { WordList } from "@/components/WordList";
 import { dictionaryRepository } from "@/repositories";
 import { useFavorites } from "@/stores/favorites";
 import { useHistory } from "@/stores/history";
@@ -66,7 +66,7 @@ export default function HistoryScreen() {
   return (
     <Screen>
       <View style={styles.topBlock}>
-        <AppHeader title="History" />
+        <Header title="History" />
       </View>
       {entries.length === 0 ? (
         <EmptyState
@@ -76,7 +76,7 @@ export default function HistoryScreen() {
         />
       ) : (
         <View style={styles.listFlex}>
-          <WordCardList
+          <WordList
             entries={entries}
             favoriteIds={favoriteIds}
             showPosTag={false}

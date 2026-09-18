@@ -1,18 +1,18 @@
-// POS tag (polished `.part`): tiny bold accent label on an accent-soft
+// Chip (polished `.part`): tiny bold accent label on an accent-soft
 // pill. Shared by result items and the entry detail header.
 
 import { StyleSheet, View } from "react-native";
-import { ThemedText } from "./themed-text";
+import { Text } from "./Text";
 import { useAppColors } from "@/theme/colors";
 import { radius, spacing } from "@/theme";
 
-export function PosTag({ label }: { label: string }) {
+export function Chip({ label }: { label: string }) {
   const colors = useAppColors();
   return (
     <View style={[styles.tag, { backgroundColor: colors.accentSoft }]}>
-      <ThemedText variant="posTag" tone="accent" style={styles.upper}>
+      <Text variant="posTag" tone="accent" style={styles.upper}>
         {label}
-      </ThemedText>
+      </Text>
     </View>
   );
 }
