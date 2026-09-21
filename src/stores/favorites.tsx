@@ -13,11 +13,16 @@ import {
 import {
   deleteFavorite,
   insertFavorite,
-  loadFavoriteIds,
+  loadFavoritesWithTimes,
+  type FavoriteItem,
 } from "@/database/user-data";
+
+export type FavoriteEntry = FavoriteItem;
 
 type FavoritesContextValue = {
   favoriteIds: ReadonlySet<string>;
+  /** Entries with save times, in the order they were saved. */
+  favoriteEntries: readonly FavoriteEntry[];
   isFavorite: (id: string) => boolean;
   toggleFavorite: (id: string) => void;
 };
@@ -25,23 +30,25 @@ type FavoritesContextValue = {
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
 
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const [favoriteIds, setFavoriteIds] = useState<ReadonlySet<string>>(
-    () => new Set(loadFavoriteIds()),
+  const [entries, setEntries] = useState<readonly FavoriteEntry[]>(() =>
+    loadFavoritesWithTimes(),
+  );
+  const favoriteIds = useMemo(
+    () => new Set(entries.map((entry) => entry.entryId)),
+    [entries],
   );
 
   const toggleFavorite = useCallback((id: string) => {
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
+    setEntries((prev) => {
       // Writes are idempotent by key, so state-updater retries cannot
       // corrupt the table (dev StrictMode double-invokes updaters).
-      if (next.has(id)) {
-        next.delete(id);
+      if (prev.some((entry) => entry.entryId === id)) {
         deleteFavorite(id);
-      } else {
-        next.add(id);
-        insertFavorite(id);
+        return prev.filter((entry) => entry.entryId !== id);
       }
-      return next;
+      insertFavorite(id);
+      // Same UTC ISO shape as the SQL default for consistent formatting.
+      return [...prev, { entryId: id, savedAt: new Date().toISOString() }];
     });
   }, []);
 
@@ -51,8 +58,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ favoriteIds, isFavorite, toggleFavorite }),
-    [favoriteIds, isFavorite, toggleFavorite],
+    () => ({ favoriteIds, favoriteEntries: entries, isFavorite, toggleFavorite }),
+    [favoriteIds, entries, isFavorite, toggleFavorite],
   );
 
   return (

@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  formatEntryMeta,
   formatHistoryDate,
   formatHistoryTime,
   groupHistoryItems,
@@ -87,5 +88,23 @@ describe("formatHistoryDate", () => {
 
   it("returns empty for garbage input", () => {
     expect(formatHistoryDate("not-a-date", NOW)).toBe("");
+  });
+});
+
+describe("formatEntryMeta", () => {
+  it("shows time for today and yesterday", () => {
+    // Morning hours render identically in 12h and 24h locales.
+    expect(formatEntryMeta(at(2026, 8, 21, 10, 30), NOW)).toContain("10:30");
+    expect(formatEntryMeta(at(2026, 8, 20, 9, 15), NOW)).toContain("9:15");
+  });
+
+  it("shows a date for older views", () => {
+    const text = formatEntryMeta(at(2026, 8, 18, 9, 0), NOW);
+    expect(text).toContain("18");
+    expect(text).not.toContain(":");
+  });
+
+  it("returns empty for garbage input", () => {
+    expect(formatEntryMeta("not-a-date", NOW)).toBe("");
   });
 });

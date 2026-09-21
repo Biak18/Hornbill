@@ -11,10 +11,21 @@ const MAX_HISTORY = 50;
 
 /** Favorite IDs in the order they were saved (matches prior Set behavior). */
 export function loadFavoriteIds(): string[] {
-  const rows = db.getAllSync<{ entryId: string }>(
-    "SELECT entryId FROM favorites ORDER BY createdAt ASC, rowid ASC",
+  return loadFavoritesWithTimes().map((item) => item.entryId);
+}
+
+export type FavoriteItem = {
+  entryId: string;
+  /** UTC ISO timestamp of when the word was saved. */
+  savedAt: string;
+};
+
+/** Favorites with save times, in the order they were saved. */
+export function loadFavoritesWithTimes(): FavoriteItem[] {
+  const rows = db.getAllSync<FavoriteItem>(
+    "SELECT entryId, createdAt AS savedAt FROM favorites ORDER BY createdAt ASC, rowid ASC",
   );
-  return rows.map((row) => row.entryId);
+  return rows;
 }
 
 export function insertFavorite(entryId: string): void {

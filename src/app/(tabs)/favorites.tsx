@@ -14,17 +14,34 @@ import { dictionaryRepository } from "@/repositories";
 import { useFavorites } from "@/stores/favorites";
 import { spacing } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
+import { formatEntryMeta } from "@/utils/history-groups";
 
 export default function FavoritesScreen() {
   const { push } = useRouter();
-  const { favoriteIds, toggleFavorite } = useFavorites();
+  const { favoriteIds, favoriteEntries, toggleFavorite } = useFavorites();
 
   const entries = useMemo(
     () =>
-      [...favoriteIds]
-        .map((id) => dictionaryRepository.getEntryById(id))
+      [...favoriteEntries]
+        .map((item) => dictionaryRepository.getEntryById(item.entryId))
         .filter((entry): entry is DictionaryEntry => entry !== undefined),
-    [favoriteIds],
+    [favoriteEntries],
+  );
+
+  // Saved-date line per row ("Saved" prefix keeps the meaning clear next to
+  // bare view times elsewhere).
+  const savedAtById = useMemo(
+    () => new Map(favoriteEntries.map((item) => [item.entryId, item.savedAt])),
+    [favoriteEntries],
+  );
+  const getMeta = useCallback(
+    (id: string) => {
+      const savedAt = savedAtById.get(id);
+      if (savedAt === undefined) return undefined;
+      const meta = formatEntryMeta(savedAt);
+      return meta.length > 0 ? `Saved ${meta}` : undefined;
+    },
+    [savedAtById],
   );
 
   const handlePressEntry = useCallback(
@@ -72,6 +89,7 @@ export default function FavoritesScreen() {
             showRemove={false}
             onPressEntry={handlePressEntry}
             onToggleFavorite={handleToggleFavorite}
+            getMeta={getMeta}
             ListHeaderComponent={listHeader}
           />
         </View>

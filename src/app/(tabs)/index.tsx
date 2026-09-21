@@ -21,6 +21,7 @@ import { useFavorites } from "@/stores/favorites";
 import { useHistory } from "@/stores/history";
 import { radius, spacing, useAppColors } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
+import { formatEntryMeta } from "@/utils/history-groups";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -51,7 +52,7 @@ export default function SearchScreen() {
   const [query, setQuery] = useState("");
   const [direction, setDirection] = useState<SearchDirection>("falam-en");
   const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const { historyIds, clear, remove } = useHistory();
+  const { historyEntries, clear, remove } = useHistory();
   const { favoriteIds, toggleFavorite } = useFavorites();
   const inputRef = useRef<TextInput>(null);
 
@@ -101,13 +102,35 @@ export default function SearchScreen() {
     }
   }, [hasMore]);
 
-  const recentEntries = useMemo(
+  const recentRows = useMemo(
     () =>
-      historyIds
-        .map((id) => dictionaryRepository.getEntryById(id))
-        .filter((entry): entry is DictionaryEntry => entry !== undefined)
+      historyEntries
+        .map((item) => {
+          const entry = dictionaryRepository.getEntryById(item.entryId);
+          return entry === undefined
+            ? undefined
+            : { entry, viewedAt: item.viewedAt };
+        })
+        .filter((row): row is { entry: DictionaryEntry; viewedAt: string } => row !== undefined)
         .slice(0, RECENT_LIMIT),
-    [historyIds],
+    [historyEntries],
+  );
+  const recentEntries = useMemo(
+    () => recentRows.map((row) => row.entry),
+    [recentRows],
+  );
+  const recentMetaById = useMemo(
+    () => new Map(recentRows.map((row) => [row.entry.id, row.viewedAt])),
+    [recentRows],
+  );
+  const getRecentMeta = useCallback(
+    (id: string) => {
+      const viewedAt = recentMetaById.get(id);
+      if (viewedAt === undefined) return undefined;
+      const meta = formatEntryMeta(viewedAt);
+      return meta.length > 0 ? meta : undefined;
+    },
+    [recentMetaById],
   );
 
   const handlePressEntry = useCallback(
@@ -318,6 +341,7 @@ export default function SearchScreen() {
               onPressEntry={handlePressEntry}
               onToggleFavorite={handleToggleFavorite}
               onRemoveEntry={handleRemoveRecent}
+              getMeta={getRecentMeta}
               ListHeaderComponent={homeHeader}
               ListEmptyComponent={RecentEmpty}
             />

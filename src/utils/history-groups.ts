@@ -67,3 +67,14 @@ export function formatHistoryDate(viewedAt: string, now: Date = new Date()): str
       : { month: "short", day: "numeric", year: "numeric" },
   );
 }
+
+/** Recency line for ungrouped lists (favorites, recents): time for views
+ * from today or yesterday, date for anything older. */
+export function formatEntryMeta(viewedAt: string, now: Date = new Date()): string {
+  const time = new Date(viewedAt).getTime();
+  if (Number.isNaN(time)) return "";
+  if (time >= startOfLocalDay(now) - DAY_MS) {
+    return formatHistoryTime(viewedAt);
+  }
+  return formatHistoryDate(viewedAt, now);
+}

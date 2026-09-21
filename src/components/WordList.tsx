@@ -32,6 +32,8 @@ type WordListProps = {
   onPressEntry: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onRemoveEntry?: (id: string) => void;
+  /** Per-row metadata line (e.g. saved/viewed time). Omit to hide everywhere. */
+  getMeta?: (id: string) => string | undefined;
   ListHeaderComponent?: ComponentType | ReactElement | null;
   ListEmptyComponent?: ComponentType | ReactElement | null;
   /** Infinite scroll: fired near the list end (search results paging). */
@@ -48,6 +50,7 @@ export function WordList({
   onPressEntry,
   onToggleFavorite,
   onRemoveEntry,
+  getMeta,
   ListHeaderComponent,
   ListEmptyComponent,
   onEndReached,
@@ -61,6 +64,7 @@ export function WordList({
         phonetic={item.pronunciation}
         meaning={firstMeaning(item)}
         posTag={showPosTag ? item.partOfSpeech : undefined}
+        meta={getMeta?.(item.id)}
         isFavorite={favoriteIds.has(item.id)}
         showRemove={showRemove}
         onPress={onPressEntry}
@@ -75,6 +79,7 @@ export function WordList({
       onPressEntry,
       onToggleFavorite,
       onRemoveEntry,
+      getMeta,
     ],
   );
 
