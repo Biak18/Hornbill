@@ -1,7 +1,9 @@
 // AudioButton — Falam pronunciation button.
-// Plays a bundled native-speaker recording via expo-audio; the player is
-// owned by this component and released on unmount. Rendered only when the
-// entry resolves to a bundled source — never as a dead control.
+// Plays a resolved native-speaker recording (bundled asset id or cached file
+// URI — both are valid expo-audio sources) via the manager in
+// audio-manager.ts; the player is owned by this component and released on
+// unmount. Rendered only when the entry resolves to a playable source —
+// never as a dead control.
 
 import { useCallback, useEffect, useMemo } from "react";
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
@@ -14,7 +16,7 @@ export function AudioButton({
   source,
   onPlayingChange,
 }: {
-  source: number;
+  source: number | string;
   onPlayingChange?: (playing: boolean) => void;
 }) {
   const colors = useAppColors();

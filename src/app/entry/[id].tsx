@@ -8,7 +8,7 @@
 // motion derives from it via transform/opacity only; PressableScale chips;
 // automatic scroll insets; ternary-with-null; strings in Text.
 
-import { getFalamAudioSource } from "@/audio/audio-files";
+import { useFalamAudioSource } from "@/audio/audio-manager";
 import { AudioButton } from "@/components/AudioButton";
 import { BackRow } from "@/components/BackRow";
 import { Card, CardBody } from "@/components/Card";
@@ -24,6 +24,7 @@ import { useHistory } from "@/stores/history";
 import { radius, spacing, useAppColors } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNetworkState } from "expo-network";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -98,6 +99,9 @@ export default function EntryScreen() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { record } = useHistory();
   const { falamAudioEnabled } = useAudioSettings();
+  const { isConnected } = useNetworkState();
+  // Inconclusive connectivity never blocks bundled playback.
+  const falamAudio = useFalamAudioSource(entry?.audioId, isConnected !== false);
   const [audioPlaying, setAudioPlaying] = useState(false);
 
   const handlePlayingChange = useCallback((next: boolean) => {
@@ -158,11 +162,11 @@ export default function EntryScreen() {
   const hasPos =
     entry.partOfSpeech !== undefined && entry.partOfSpeech.length > 0;
   const hasNotes = entry.notes !== undefined && entry.notes.length > 0;
-  const audioSource =
-    entry.audioId !== undefined
-      ? getFalamAudioSource(entry.audioId)
-      : undefined;
-  const canPlayAudio = audioSource !== undefined && falamAudioEnabled;
+  // Local playability for the source footer: an id still resolving counts
+  // as available (bundled resolution lands in milliseconds); only a settled
+  // `unavailable` — or no id at all — reports otherwise.
+  const recordingAvailable =
+    entry.audioId !== undefined && falamAudio.status !== "unavailable";
 
   return (
     // No offline banner here: the floating back bar is absolutely positioned
@@ -248,9 +252,9 @@ export default function EntryScreen() {
             <View
               style={[styles.audioBar, { backgroundColor: colors.surface2 }]}
             >
-              {canPlayAudio ? (
+              {falamAudio.status === "ready" && falamAudioEnabled ? (
                 <AudioButton
-                  source={audioSource as number}
+                  source={falamAudio.source}
                   onPlayingChange={handlePlayingChange}
                 />
               ) : (
@@ -260,10 +264,15 @@ export default function EntryScreen() {
                     size={18}
                     color={colors.muted}
                   />
-                  <Text variant="label" tone="secondary">
+                  <Text variant="label" tone="secondary" style={styles.audioNoteText}>
                     {!falamAudioEnabled
-                      ? "Recordings off — enable in More → Audio"
-                      : "Audio unavailable"}
+                      ? "Recordings off,enable in More → Audio"
+                      : falamAudio.status === "checking"
+                        ? "Preparing audio…"
+                        : falamAudio.status === "unavailable" &&
+                            falamAudio.reason === "offline"
+                          ? "Unavailable offline"
+                          : "Audio unavailable"}
                   </Text>
                 </View>
               )}
@@ -401,7 +410,7 @@ export default function EntryScreen() {
             SOURCE
           </Text>
           <Text variant="bodySm" tone="faint">
-            {`${entry.source?.sourceName ?? "Unknown"} · ${audioSource !== undefined ? "pronunciation recording available" : "pronunciation recording not available"}`}
+            {`${entry.source?.sourceName ?? "Unknown"} · ${recordingAvailable ? "pronunciation recording available" : "pronunciation recording not available"}`}
           </Text>
         </View>
       </Animated.ScrollView>
@@ -476,8 +485,17 @@ const styles = StyleSheet.create({
   },
   audioNote: {
     alignItems: "center",
+    // Bounded flex item: the copy wraps inside the bar instead of pushing
+    // the row (and its icon) past the card edge. minWidth: 0 lets Android
+    // measure the text within the remaining space.
+    flex: 1,
     flexDirection: "row",
+    flexShrink: 1,
     gap: spacing.sm,
+    minWidth: 0,
+  },
+  audioNoteText: {
+    flexShrink: 1,
   },
   sense: {
     borderWidth: 1,
