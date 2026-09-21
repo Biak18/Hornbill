@@ -9,14 +9,21 @@
 // - Ternary-with-null; strings in Text.
 
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useMemo } from "react";
+import Constants from "expo-constants";
 import { Card } from "@/components/Card";
 import { Screen } from "@/components/Screen";
 import { Text } from "@/components/Text";
+import { dictionaryRepository } from "@/repositories";
 import { useAudioSettings } from "@/stores/audio-settings";
 import {
   useThemePreference,
   type ThemePreference,
 } from "@/stores/theme-preference";
+import {
+  formatVerificationCounts,
+  summarizeDictionary,
+} from "@/utils/dictionary-stats";
 import { radius, spacing, useAppColors, fontFamily } from "@/theme";
 
 const THEME_OPTIONS: readonly ThemePreference[] = [
@@ -135,6 +142,18 @@ export default function MoreScreen() {
     setFalamAudioEnabled,
   } = useAudioSettings();
 
+  // Live dataset facts for the Data card: real counts and source names from
+  // the repository, never hardcoded. Recomputed when the screen mounts.
+  const summary = useMemo(
+    () => summarizeDictionary(dictionaryRepository.getAllEntries()),
+    [],
+  );
+  const appVersion = Constants.expoConfig?.version ?? "1.0.0";
+  const sourceDetail =
+    summary.sources.length <= 2
+      ? summary.sources.join(" · ")
+      : `${summary.sources.slice(0, 2).join(" · ")} · +${summary.sources.length - 2} more`;
+
   return (
     <Screen>
       <ScrollView
@@ -190,13 +209,34 @@ export default function MoreScreen() {
         </Card>
         <Card style={{ backgroundColor: colors.surface }}>
           <Text variant="eyebrow" tone="secondary">
+            DATA
+          </Text>
+          <SettingRow
+            name="Dictionary"
+            detail={`${summary.total} words · stored on this device`}
+          />
+          <SettingRow name="Sources" detail={sourceDetail} />
+          <SettingRow
+            name="Verification"
+            detail={formatVerificationCounts(summary)}
+          />
+        </Card>
+        <Card style={{ backgroundColor: colors.surface }}>
+          <Text variant="eyebrow" tone="secondary">
             ABOUT
           </Text>
           <SettingRow
-            name="Dictionary information"
-            detail="User-contributed words · unverified drafts"
+            name="Falam Dictionary"
+            detail="Falam → English reference · offline-first"
           />
-          <SettingRow name="Version" detail="1.0.0 · offline edition" />
+          <SettingRow
+            name="Version"
+            detail={`${appVersion} · offline edition`}
+          />
+          <SettingRow
+            name="Credits"
+            detail="Community wordlist · native-speaker review pending"
+          />
         </Card>
       </ScrollView>
     </Screen>
