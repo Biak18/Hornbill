@@ -32,8 +32,8 @@ import {
   type TextInputSelectionChangeEvent,
 } from "react-native";
 
-const DIACRITICS = ["â", "ē", "ī", "ō", "ū"] as const;
-const SEARCH_LIMIT = 20;
+const DIACRITICS = ["â", "ā", "ă", "ē", "ī", "ō", "ū", "ṭ"] as const;
+const PAGE_SIZE = 20;
 const RECENT_LIMIT = 5;
 
 // Module scope: static empty state, identical element identity every render.
@@ -55,13 +55,31 @@ export default function SearchScreen() {
   const { favoriteIds, toggleFavorite } = useFavorites();
   const inputRef = useRef<TextInput>(null);
 
-  // Derived: search results from ground-truth query+direction (no sync effects).
+  // Paged results: page resets to 1 on a new query/direction via the
+  // render-adjust pattern (no sync effect), matching this screen's
+  // derived-state style. Each page fetches one extra row as a probe for
+  // whether another page exists — the repository never reports totals.
+  const [paging, setPaging] = useState({
+    query: "",
+    direction: "falam-en" as SearchDirection,
+    page: 1,
+  });
+  if (paging.query !== query || paging.direction !== direction) {
+    setPaging({ query, direction, page: 1 });
+  }
+  const page =
+    paging.query === query && paging.direction === direction
+      ? paging.page
+      : 1;
+  const visibleCount = page * PAGE_SIZE;
+
+  // Derived: search results from ground-truth query+direction+page (no sync effects).
   const { results, errorMessage } = useMemo(() => {
     try {
       return {
         results: searchDictionary(query, {
           repository: dictionaryRepository,
-          limit: SEARCH_LIMIT,
+          limit: visibleCount + 1,
           direction,
         }),
         errorMessage: null as string | null,
@@ -72,7 +90,16 @@ export default function SearchScreen() {
         errorMessage: "Search failed. Try again.",
       };
     }
-  }, [query, direction]);
+  }, [query, direction, visibleCount]);
+
+  const hasMore = results.length > visibleCount;
+  const displayed = hasMore ? results.slice(0, visibleCount) : results;
+
+  const handleEndReached = useCallback(() => {
+    if (hasMore) {
+      setPaging((prev) => ({ ...prev, page: prev.page + 1 }));
+    }
+  }, [hasMore]);
 
   const recentEntries = useMemo(
     () =>
@@ -159,12 +186,27 @@ export default function SearchScreen() {
           {query.trim()}
         </Text>
         <Text variant="bodySm" tone="secondary">
-          {`${results.length} result${results.length === 1 ? "" : "s"} in the local dictionary`}
+          {`${displayed.length} result${displayed.length === 1 ? "" : "s"} in the local dictionary`}
         </Text>
       </View>
     ),
-    [query, results.length],
+    [query, displayed.length],
   );
+
+  // End-of-results note, only once the user has scrolled past the first
+  // page — a 3-row query needs no "end" announcement.
+  const resultsFooter = useMemo(() => {
+    if (hasMore || displayed.length <= PAGE_SIZE) {
+      return null;
+    }
+    return (
+      <View style={styles.endNote}>
+        <Text variant="bodySm" tone="faint">
+          End of results
+        </Text>
+      </View>
+    );
+  }, [hasMore, displayed.length]);
 
   const trimmed = query.trim();
   const isBlank = trimmed.length === 0;
@@ -245,7 +287,7 @@ export default function SearchScreen() {
           </View>
         ) : !isBlank ? (
           <View style={styles.listFlex}>
-            {results.length === 0 ? (
+            {displayed.length === 0 ? (
               <View style={styles.state}>
                 <Text variant="bodySm" tone="secondary">
                   Check the spelling or try a shorter prefix.
@@ -253,13 +295,15 @@ export default function SearchScreen() {
               </View>
             ) : (
               <WordList
-                entries={results}
+                entries={displayed}
                 favoriteIds={favoriteIds}
                 showPosTag
                 showRemove={false}
                 onPressEntry={handlePressEntry}
                 onToggleFavorite={handleToggleFavorite}
+                onEndReached={handleEndReached}
                 ListHeaderComponent={resultsHeader}
+                ListFooterComponent={resultsFooter}
               />
             )}
           </View>
@@ -311,6 +355,7 @@ const styles = StyleSheet.create({
   diacriticRow: {
     alignItems: "center",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   diacriticKey: {
@@ -331,6 +376,10 @@ const styles = StyleSheet.create({
   resultsMeta: {
     gap: 2,
     paddingBottom: spacing.xs,
+  },
+  endNote: {
+    alignItems: "center",
+    paddingVertical: spacing.md,
   },
   state: {
     alignItems: "center",

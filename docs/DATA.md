@@ -138,3 +138,32 @@ Each production entry should ideally have:
 Not every field must be available for every entry.
 
 Accuracy is more important than completeness.
+
+## 14. Import Pipeline
+
+Contributor files live in `data/imports/*.json` (top-level array of entries;
+see `data/imports/example.json` for the shape — synthetic MOCK words only,
+never real Falam). Validate before anything reaches the app:
+
+```sh
+node scripts/validate-dictionary.mjs [--emit src/data/production.json] [--strict] [--allow-verified] <file.json...>
+# or: npm run validate:dictionary -- <file.json...>
+```
+
+Enforced rules:
+
+- Schema violations (missing id/word/meanings, guessed part of speech,
+  rewritten spelling, mismatched searchKey) block the import (exit 1).
+- Missing `searchKey` is derived from `word` (normalization, §8) — the only
+  field the pipeline ever fills in.
+- Imported data is coerced to `verificationStatus: "draft"` unless
+  `--allow-verified` is passed after genuine human review.
+- Potential duplicates are reported, never merged. Entry ids must be stable:
+  reseeding uses INSERT OR IGNORE, so re-importing the same file is
+  idempotent; to correct an entry, keep its id.
+- Warnings (missing source, untranslated examples, duplicates) fail the run
+  only with `--strict`.
+
+`src/data/production.json` (written via `--emit`) seeds SQLite at schema v2
+alongside the demo wordlist; a minimal runtime guard skips malformed bundled
+rows with a warning.

@@ -12,6 +12,7 @@ import { getFalamAudioSource } from "@/audio/audio-files";
 import { AudioButton } from "@/components/AudioButton";
 import { BackRow } from "@/components/BackRow";
 import { Card, CardBody } from "@/components/Card";
+import { EnglishAudioButton } from "@/components/EnglishAudioButton";
 import { PressableScale } from "@/components/PressableScale";
 import { Screen } from "@/components/Screen";
 import { Text } from "@/components/Text";
@@ -164,7 +165,10 @@ export default function EntryScreen() {
   const canPlayAudio = audioSource !== undefined && falamAudioEnabled;
 
   return (
-    <Screen>
+    // No offline banner here: the floating back bar is absolutely positioned
+    // at the top and would overlap it. Offline impact on this screen is
+    // already explicit per audio control ("Audio unavailable").
+    <Screen showOfflineBanner={false}>
       {/* Floating glass back row over the scroll content (BackRow carries
         its own edge padding when floating). Sibling of the ScrollView,
         rendered after it so it paints above on both platforms. */}
@@ -302,6 +306,7 @@ export default function EntryScreen() {
                 <Text variant="definition" selectable>
                   {sense.english}
                 </Text>
+                <EnglishAudioButton text={sense.english} />
                 {hasExamples ? (
                   <View style={styles.examples}>
                     <View style={styles.examplesLabel}>
@@ -396,7 +401,7 @@ export default function EntryScreen() {
             SOURCE
           </Text>
           <Text variant="bodySm" tone="faint">
-            {`${entry.source?.sourceName ?? "Unknown"} · pronunciation recording not available`}
+            {`${entry.source?.sourceName ?? "Unknown"} · ${audioSource !== undefined ? "pronunciation recording available" : "pronunciation recording not available"}`}
           </Text>
         </View>
       </Animated.ScrollView>

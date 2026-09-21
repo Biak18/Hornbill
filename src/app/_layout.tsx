@@ -8,6 +8,9 @@ import { FavoritesProvider } from "@/stores/favorites";
 import { HistoryProvider } from "@/stores/history";
 import { ThemePreferenceProvider } from "@/stores/theme-preference";
 import { useAppColors, useAppFonts, useResolvedScheme } from "@/theme";
+import { EmptyState } from "@/components/EmptyState";
+import { Screen } from "@/components/Screen";
+import { primeDatabase } from "@/database/database";
 import {
   DarkTheme,
   DefaultTheme,
@@ -15,7 +18,7 @@ import {
 } from "expo-router/react-navigation";
 import { Stack } from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -61,6 +64,9 @@ function AppChrome() {
 
 export default function RootLayout() {
   const fontsLoaded = useAppFonts();
+  // Prime the database before any provider (favorites/history/settings)
+  // touches it. A failure renders the human fallback below — never a crash.
+  const dbError = useMemo(() => primeDatabase(), []);
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -70,6 +76,22 @@ export default function RootLayout() {
 
   if (!fontsLoaded) {
     return null;
+  }
+
+  if (dbError !== null) {
+    return (
+      <ThemePreferenceProvider>
+        <GestureHandlerRootView style={styles.root}>
+          <Screen showOfflineBanner={false}>
+            <EmptyState
+              icon="cloud-off"
+              title="Dictionary unavailable"
+              copy="Try reopening the app or checking the downloaded dictionary."
+            />
+          </Screen>
+        </GestureHandlerRootView>
+      </ThemePreferenceProvider>
+    );
   }
 
   return (

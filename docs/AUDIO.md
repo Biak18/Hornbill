@@ -38,6 +38,12 @@ speakEnglish(text)
 
 Do not assume every device has the same voice or offline voice package.
 
+Device compatibility: some phones (e.g. China-ROM Xiaomi devices without
+Google TTS) ship only an OEM engine that may be disabled or lack English
+voice data. The app must surface actionable guidance (enable a TTS engine
+with English voice data in system Settings → Text-to-speech) instead of a
+silent button — verified on Redmi Turbo 4 Pro (Mi AI engine), 2026-09-19.
+
 ## 3. Falam Pronunciation
 
 The primary Falam pronunciation method is native-speaker recording.

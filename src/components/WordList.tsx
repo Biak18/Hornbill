@@ -34,6 +34,9 @@ type WordListProps = {
   onRemoveEntry?: (id: string) => void;
   ListHeaderComponent?: ComponentType | ReactElement | null;
   ListEmptyComponent?: ComponentType | ReactElement | null;
+  /** Infinite scroll: fired near the list end (search results paging). */
+  onEndReached?: () => void;
+  ListFooterComponent?: ComponentType | ReactElement | null;
 };
 
 export function WordList({
@@ -47,6 +50,8 @@ export function WordList({
   onRemoveEntry,
   ListHeaderComponent,
   ListEmptyComponent,
+  onEndReached,
+  ListFooterComponent,
 }: WordListProps) {
   const renderItem = useCallback(
     ({ item }: { item: DictionaryEntry }) => (
@@ -94,6 +99,9 @@ export function WordList({
       ItemSeparatorComponent={renderSeparator}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={ListEmptyComponent}
+      ListFooterComponent={ListFooterComponent}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.5}
     />
   );
 }

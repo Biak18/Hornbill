@@ -1,0 +1,44 @@
+[
+  {
+    "id": "example_001",
+    "word": "MOCK-falam-word",
+    "partOfSpeech": "noun",
+    "definitions": [
+      {
+        "id": "example_001__sense1",
+        "english": "English meaning of the mock word",
+        "examples": [
+          {
+            "falam": "MOCK Falam example sentence.",
+            "english": "English translation of the mock example."
+          }
+        ]
+      },
+      {
+        "id": "example_001__sense2",
+        "english": "Second sense of the mock word"
+      }
+    ],
+    "relatedWords": ["example_002"],
+    "source": {
+      "sourceId": "example-template",
+      "sourceName": "Example template — synthetic, not real Falam"
+    },
+    "verificationStatus": "draft"
+  },
+  {
+    "id": "example_002",
+    "word": "MOCK-related-word",
+    "definitions": [
+      {
+        "id": "example_002__sense1",
+        "english": "English meaning of the related mock word"
+      }
+    ],
+    "source": {
+      "sourceId": "example-template",
+      "sourceName": "Example template — synthetic, not real Falam"
+    },
+    "verificationStatus": "draft"
+  }
+]

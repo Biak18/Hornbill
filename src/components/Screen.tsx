@@ -9,13 +9,21 @@ import type { ReactNode } from "react";
 import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppColors } from "@/theme/colors";
+import { OfflineBanner } from "./OfflineBanner";
 
 export function Screen({
   children,
   style,
+  showOfflineBanner = true,
 }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /**
+   * In-flow offline banner above the content. Disable only when top chrome
+   * is absolutely positioned and would overlap it (entry hero's floating
+   * back bar) — that screen already surfaces offline-relevant audio states.
+   */
+  showOfflineBanner?: boolean;
 }) {
   const colors = useAppColors();
   return (
@@ -23,6 +31,7 @@ export function Screen({
       edges={["top"]}
       style={[styles.screen, { backgroundColor: colors.surface }, style]}
     >
+      {showOfflineBanner ? <OfflineBanner /> : null}
       {children}
     </SafeAreaView>
   );
