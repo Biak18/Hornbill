@@ -30,11 +30,22 @@ export function deleteFavorite(entryId: string): void {
 
 /** History IDs, most-recent-first, capped (matches prior store behavior). */
 export function loadHistoryIds(): string[] {
-  const rows = db.getAllSync<{ entryId: string }>(
-    "SELECT entryId FROM history ORDER BY viewedAt DESC, rowid DESC LIMIT ?",
+  return loadHistoryWithTimes().map((item) => item.entryId);
+}
+
+export type HistoryItem = {
+  entryId: string;
+  /** UTC ISO timestamp of the view (strftime %Y-%m-%dT%H:%M:%fZ). */
+  viewedAt: string;
+};
+
+/** History entries with view times, most-recent-first, capped. */
+export function loadHistoryWithTimes(): HistoryItem[] {
+  const rows = db.getAllSync<HistoryItem>(
+    "SELECT entryId, viewedAt FROM history ORDER BY viewedAt DESC, rowid DESC LIMIT ?",
     [MAX_HISTORY],
   );
-  return rows.map((row) => row.entryId);
+  return rows;
 }
 
 export function recordHistoryEntry(entryId: string): void {

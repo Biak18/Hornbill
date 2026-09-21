@@ -1,34 +1,68 @@
-// History tab — Stitch recent-lookups pattern with honest data:
-// Header + section header (count + Clear All) + word cards with star
-// and per-item remove. Single "Recent" section — no fabricated
-// Today/Yesterday groupings or timestamps, since view times are recorded.
+// History tab — grouped recents (Today / Yesterday / Earlier) with honest
+// view times from the stored UTC timestamps. Rows stay side-effect-free
+// WordCards (≤50 rows, so a plain ScrollView replaces the virtualizer here).
+// Clear all flips to a muted "Cleared" confirmation briefly — no modal
+// (docs/Design.md §15).
 
-import { useCallback, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { Screen } from "@/components/Screen";
 import { SectionHeader } from "@/components/SectionHeader";
-import { WordList } from "@/components/WordList";
+import { WordCard } from "@/components/WordCard";
 import { dictionaryRepository } from "@/repositories";
 import { useFavorites } from "@/stores/favorites";
 import { useHistory } from "@/stores/history";
 import { spacing } from "@/theme";
 import type { DictionaryEntry } from "@/types/dictionary";
+import {
+  formatHistoryDate,
+  formatHistoryTime,
+  groupHistoryItems,
+} from "@/utils/history-groups";
+
+const CLEARED_MS = 2000;
+
+type HistoryRow = {
+  entry: DictionaryEntry;
+  viewedAt: string;
+};
+
+function firstMeaning(entry: DictionaryEntry): string {
+  return entry.definitions[0]?.english ?? "";
+}
 
 export default function HistoryScreen() {
   const { push } = useRouter();
-  const { historyIds, clear, remove } = useHistory();
-  const { favoriteIds, toggleFavorite } = useFavorites();
+  const { historyEntries, clear, remove } = useHistory();
+  const { toggleFavorite, isFavorite } = useFavorites();
+  const [justCleared, setJustCleared] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const entries = useMemo(
+  useEffect(() => {
+    return () => {
+      if (timer.current !== null) {
+        clearTimeout(timer.current);
+      }
+    };
+  }, []);
+
+  const rows = useMemo<HistoryRow[]>(
     () =>
-      historyIds
-        .map((id) => dictionaryRepository.getEntryById(id))
-        .filter((entry): entry is DictionaryEntry => entry !== undefined),
-    [historyIds],
+      historyEntries
+        .map((item) => {
+          const entry = dictionaryRepository.getEntryById(item.entryId);
+          return entry === undefined
+            ? undefined
+            : { entry, viewedAt: item.viewedAt };
+        })
+        .filter((row): row is HistoryRow => row !== undefined),
+    [historyEntries],
   );
+
+  const groups = useMemo(() => groupHistoryItems(rows), [rows]);
 
   const handlePressEntry = useCallback(
     (id: string) => {
@@ -51,42 +85,70 @@ export default function HistoryScreen() {
     [remove],
   );
 
-  const listHeader = useMemo(
-    () => (
-      <SectionHeader
-        title="Recent"
-        count={entries.length}
-        actionLabel="Clear all"
-        onAction={clear}
-      />
-    ),
-    [entries.length, clear],
-  );
+  const handleClear = useCallback(() => {
+    clear();
+    setJustCleared(true);
+    if (timer.current !== null) {
+      clearTimeout(timer.current);
+    }
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      setJustCleared(false);
+    }, CLEARED_MS);
+  }, [clear]);
+
+  // The "Cleared" confirmation needs its header visible for a beat after the
+  // rows disappear — otherwise it would never paint.
+  const showList = rows.length > 0 || justCleared;
 
   return (
     <Screen>
       <View style={styles.topBlock}>
         <Header title="History" />
       </View>
-      {entries.length === 0 ? (
+      {!showList ? (
         <EmptyState
           icon="history"
           title="No recent words"
           copy="Your recent searches will appear here."
         />
       ) : (
-        <View style={styles.listFlex}>
-          <WordList
-            entries={entries}
-            favoriteIds={favoriteIds}
-            showPosTag={false}
-            showRemove
-            onPressEntry={handlePressEntry}
-            onToggleFavorite={handleToggleFavorite}
-            onRemoveEntry={handleRemove}
-            ListHeaderComponent={listHeader}
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={styles.content}
+        >
+          <SectionHeader
+            title="Recent"
+            count={rows.length}
+            actionLabel={rows.length > 0 && !justCleared ? "Clear all" : undefined}
+            onAction={rows.length > 0 && !justCleared ? handleClear : undefined}
+            statusLabel={justCleared ? "Cleared" : undefined}
           />
-        </View>
+          {groups.map((group) => (
+            <View key={group.title} style={styles.group}>
+              <SectionHeader title={group.title} count={group.items.length} />
+              {group.items.map((row) => (
+                <WordCard
+                  key={row.entry.id}
+                  id={row.entry.id}
+                  word={row.entry.word}
+                  phonetic={row.entry.pronunciation}
+                  meaning={firstMeaning(row.entry)}
+                  meta={
+                    group.title === "Earlier"
+                      ? formatHistoryDate(row.viewedAt)
+                      : formatHistoryTime(row.viewedAt)
+                  }
+                  isFavorite={isFavorite(row.entry.id)}
+                  showRemove
+                  onPress={handlePressEntry}
+                  onToggleFavorite={handleToggleFavorite}
+                  onRemove={handleRemove}
+                />
+              ))}
+            </View>
+          ))}
+        </ScrollView>
       )}
     </Screen>
   );
@@ -97,8 +159,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
   },
-  listFlex: {
-    flex: 1,
+  content: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
+  },
+  group: {
+    gap: spacing.sm,
   },
 });

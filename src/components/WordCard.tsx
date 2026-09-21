@@ -26,6 +26,8 @@ type WordCardProps = {
   phonetic?: string;
   meaning: string;
   posTag?: string;
+  /** Small trailing metadata line (e.g. history view time). Omit to hide. */
+  meta?: string;
   isFavorite: boolean;
   showRemove: boolean;
   onPress: (id: string) => void;
@@ -39,6 +41,7 @@ export const WordCard = memo(function WordCard({
   phonetic,
   meaning,
   posTag,
+  meta,
   isFavorite,
   showRemove,
   onPress,
@@ -81,6 +84,7 @@ export const WordCard = memo(function WordCard({
 
   const hasPhonetic = phonetic !== undefined && phonetic.length > 0;
   const hasPosTag = posTag !== undefined && posTag.length > 0;
+  const hasMeta = meta !== undefined && meta.length > 0;
   const canRemove = showRemove && onRemove !== undefined;
 
   return (
@@ -105,6 +109,11 @@ export const WordCard = memo(function WordCard({
           <Text variant="bodySm" tone="secondary" numberOfLines={2}>
             {meaning}
           </Text>
+          {hasMeta ? (
+            <Text variant="meta" tone="faint" numberOfLines={1}>
+              {meta as string}
+            </Text>
+          ) : null}
           {hasPosTag ? <Chip label={posTag as string} /> : null}
         </View>
         <View style={styles.actions}>

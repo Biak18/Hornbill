@@ -13,6 +13,9 @@ type SectionHeaderProps = {
   count?: number;
   actionLabel?: string;
   onAction?: () => void;
+  /** Non-interactive muted confirmation (e.g. "Cleared"). Shown only when
+   * no action is present — never alongside one. */
+  statusLabel?: string;
 };
 
 export const SectionHeader = memo(function SectionHeader({
@@ -20,6 +23,7 @@ export const SectionHeader = memo(function SectionHeader({
   count,
   actionLabel,
   onAction,
+  statusLabel,
 }: SectionHeaderProps) {
   const colors = useAppColors();
   const showCount = count !== undefined && count >= 0;
@@ -27,6 +31,8 @@ export const SectionHeader = memo(function SectionHeader({
     actionLabel !== undefined &&
     actionLabel.length > 0 &&
     onAction !== undefined;
+  const showStatus =
+    !showAction && statusLabel !== undefined && statusLabel.length > 0;
   return (
     <View style={styles.wrap}>
       <View style={styles.left}>
@@ -50,6 +56,10 @@ export const SectionHeader = memo(function SectionHeader({
             {actionLabel}
           </Text>
         </Pressable>
+      ) : showStatus ? (
+        <Text variant="label" tone="secondary">
+          {statusLabel as string}
+        </Text>
       ) : null}
     </View>
   );

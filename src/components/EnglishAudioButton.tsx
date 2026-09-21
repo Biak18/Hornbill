@@ -68,13 +68,20 @@ export function EnglishAudioButton({ text }: { text: string }) {
   // swallows that silently, the fallback retries language-only, which is
   // what Google TTS on emulators accepts. Only after both stay silent do
   // we show the retry state.
+  //
+  // The fallback goes through a ref (kept current by the effect below):
+  // calling the memoized callback from inside itself would freeze the first
+  // render's closure (react-hooks/immutability).
+  const attemptRunner = useRef<
+    ((useExplicitVoice: boolean, isFinal: boolean) => void) | undefined
+  >(undefined);
   const runAttempt = useCallback(
     (useExplicitVoice: boolean, isFinal: boolean) => {
       clearWatchdog();
       watchdog.current = setTimeout(() => {
         watchdog.current = null;
         if (!isFinal) {
-          runAttempt(false, true);
+          attemptRunner.current?.(false, true);
         } else {
           setSpeaking(false);
           setFailed(true);
@@ -107,6 +114,10 @@ export function EnglishAudioButton({ text }: { text: string }) {
     [text, clearWatchdog],
   );
 
+  useEffect(() => {
+    attemptRunner.current = runAttempt;
+  }, [runAttempt]);
+
   const handlePress = useCallback(() => {
     if (speaking) {
       clearWatchdog();
@@ -118,7 +129,7 @@ export function EnglishAudioButton({ text }: { text: string }) {
     // engine is slow to fire onStart.
     setSpeaking(true);
     runAttempt(true, false);
-  }, [speaking, runAttempt]);
+  }, [speaking, runAttempt, clearWatchdog]);
 
   if (!englishTtsEnabled) {
     return null;

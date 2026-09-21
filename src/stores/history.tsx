@@ -13,14 +13,20 @@ import {
 import {
   clearHistory,
   deleteHistoryEntry,
-  loadHistoryIds,
+  loadHistoryWithTimes,
   recordHistoryEntry,
+  type HistoryItem,
 } from "@/database/user-data";
 
 const MAX_HISTORY = 50;
 
+export type HistoryEntry = HistoryItem;
+
 type HistoryContextValue = {
+  /** Entry IDs, most-recent-first (derived for recents/favorites consumers). */
   historyIds: readonly string[];
+  /** Entries with view times, most-recent-first (for grouped history). */
+  historyEntries: readonly HistoryEntry[];
   record: (id: string) => void;
   remove: (id: string) => void;
   clear: () => void;
@@ -29,31 +35,41 @@ type HistoryContextValue = {
 const HistoryContext = createContext<HistoryContextValue | null>(null);
 
 export function HistoryProvider({ children }: { children: ReactNode }) {
-  const [historyIds, setHistoryIds] = useState<readonly string[]>(
-    () => loadHistoryIds(),
+  const [entries, setEntries] = useState<readonly HistoryEntry[]>(() =>
+    loadHistoryWithTimes(),
+  );
+  const historyIds = useMemo(
+    () => entries.map((entry) => entry.entryId),
+    [entries],
   );
 
   const record = useCallback((id: string) => {
     // Idempotent write-then-prune in SQL mirrors the capped state update.
+    // State timestamp uses the same UTC ISO shape as the SQL default so
+    // grouping/formatting treat fresh records like stored ones.
     recordHistoryEntry(id);
-    setHistoryIds((prev) =>
-      [id, ...prev.filter((existing) => existing !== id)].slice(0, MAX_HISTORY),
+    const viewedAt = new Date().toISOString();
+    setEntries((prev) =>
+      [{ entryId: id, viewedAt }, ...prev.filter((entry) => entry.entryId !== id)].slice(
+        0,
+        MAX_HISTORY,
+      ),
     );
   }, []);
 
   const clear = useCallback(() => {
     clearHistory();
-    setHistoryIds([]);
+    setEntries([]);
   }, []);
 
   const remove = useCallback((id: string) => {
     deleteHistoryEntry(id);
-    setHistoryIds((prev) => prev.filter((existing) => existing !== id));
+    setEntries((prev) => prev.filter((entry) => entry.entryId !== id));
   }, []);
 
   const value = useMemo(
-    () => ({ historyIds, record, remove, clear }),
-    [historyIds, record, remove, clear],
+    () => ({ historyIds, historyEntries: entries, record, remove, clear }),
+    [historyIds, entries, record, remove, clear],
   );
 
   return (
