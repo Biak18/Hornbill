@@ -9,8 +9,9 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Pressable as GesturePressable } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNetworkState } from "expo-network";
 import { useRouter } from "expo-router";
-import { getFalamAudioSource } from "@/audio/audio-files";
+import { useFalamAudioSource } from "@/audio/audio-manager";
 import { AudioButton } from "./AudioButton";
 import { Chip } from "./Chip";
 import { IconButton } from "./IconButton";
@@ -42,6 +43,11 @@ export function FeaturedCard() {
   const entry = useMemo(() => pickFeatured(), []);
   const favorite = entry !== undefined && isFavorite(entry.id);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  // Manager resolution (bundled → cached → honest unavailability), before
+  // the early return below. Inconclusive connectivity never blocks bundled
+  // playback.
+  const { isConnected } = useNetworkState();
+  const falamAudio = useFalamAudioSource(entry?.audioId, isConnected !== false);
 
   const handlePlayingChange = useCallback((next: boolean) => {
     setAudioPlaying(next);
@@ -87,11 +93,6 @@ export function FeaturedCard() {
     entry.pronunciation !== undefined && entry.pronunciation.length > 0;
   const hasPos =
     entry.partOfSpeech !== undefined && entry.partOfSpeech.length > 0;
-  const audioSource =
-    entry.audioId !== undefined
-      ? getFalamAudioSource(entry.audioId)
-      : undefined;
-  const canPlayAudio = audioSource !== undefined && falamAudioEnabled;
 
   return (
     <GesturePressable
@@ -128,18 +129,25 @@ export function FeaturedCard() {
         {hasPos ? <Chip label={entry.partOfSpeech as string} /> : null}
       </View>
       <View style={styles.audioRow}>
-        {canPlayAudio ? (
+        {falamAudio.status === "ready" && falamAudioEnabled ? (
           <View onTouchStart={markInnerPress}>
             <AudioButton
-              source={audioSource as number}
+              source={falamAudio.source}
               onPlayingChange={handlePlayingChange}
             />
           </View>
         ) : (
           <View style={[styles.audioNote, { backgroundColor: colors.surface2 }]}>
             <MaterialIcons name="volume-off" size={16} color={colors.muted} />
-            <Text variant="labelSm" tone="secondary">
-              Audio unavailable
+            <Text variant="labelSm" tone="secondary" style={styles.audioNoteText}>
+              {!falamAudioEnabled
+                ? "Recordings off"
+                : falamAudio.status === "checking"
+                  ? "Preparing audio…"
+                  : falamAudio.status === "unavailable" &&
+                      falamAudio.reason === "offline"
+                    ? "Unavailable offline"
+                    : "Audio unavailable"}
             </Text>
           </View>
         )}
@@ -199,10 +207,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: radius.full,
     borderCurve: "continuous",
+    // Same bounded-flex fix as the entry audio bar: copy wraps instead of
+    // pushing the row past the card edge.
+    flex: 1,
     flexDirection: "row",
+    flexShrink: 1,
     gap: spacing.sm,
+    minWidth: 0,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+  },
+  audioNoteText: {
+    flexShrink: 1,
   },
   example: {
     borderRadius: radius.card,
