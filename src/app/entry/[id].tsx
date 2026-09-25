@@ -22,6 +22,7 @@ import { useAudioSettings } from "@/stores/audio-settings";
 import { useFavorites } from "@/stores/favorites";
 import { useHistory } from "@/stores/history";
 import { radius, spacing, useAppColors } from "@/theme";
+import { useBottomClearance } from "@/hooks/use-bottom-clearance";
 import type { DictionaryEntry } from "@/types/dictionary";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNetworkState } from "expo-network";
@@ -102,6 +103,8 @@ export default function EntryScreen() {
   const { isConnected } = useNetworkState();
   // Inconclusive connectivity never blocks bundled playback.
   const falamAudio = useFalamAudioSource(entry?.audioId, isConnected !== false);
+  // No tab bar on this pushed screen — clear the system gesture bar only.
+  const bottomClearance = useBottomClearance(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
 
   const handlePlayingChange = useCallback((next: boolean) => {
@@ -180,7 +183,7 @@ export default function EntryScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, styles.contentUnderBar]}
+        contentContainerStyle={[styles.content, styles.contentUnderBar, { paddingBottom: bottomClearance }]}
       >
         <Animated.View style={heroStyle}>
           <View

@@ -65,48 +65,60 @@ function makeEntry(
 }
 
 export const placeholderEntries: DictionaryEntry[] = [
-  makeEntry("entry_user_001", "ei", "verb", [
-    {
-      english: "to eat",
-      examples: [{ falam: "Rawl kan ei." }],
-    },
-    { english: "to take" },
-    { english: "to have (food)" },
-  ]),
+  makeEntry(
+    "entry_user_001",
+    "ei",
+    "verb",
+    [
+      {
+        english: "to eat",
+        examples: [{ falam: "Rawl kan ei." }],
+      },
+      { english: "to take" },
+      { english: "to have (food)" },
+    ],
+    { audioId: "000003" },
+  ),
   makeEntry("entry_user_002", "ei", "verb", [
     {
       english: "erode; corrode",
       examples: [{ falam: "Thirleng ke in ka dip a ei tlek thluh." }],
     },
   ]),
-  makeEntry("entry_user_003", "nu", "noun", [
-    {
-      english: "mother",
-      examples: [
-        {
-          falam:
-            "Nu cu insang sungih mi pawimawh bik a si. Na nu cu kan nu thawn khukhri-aw an si.",
-        },
-      ],
-    },
-    { english: "married woman" },
-    { english: "female of the species; fruit bearing tree or plant" },
-    { english: "aunty (one calls his/her mother's younger or older sister)" },
-    {
-      english: "wife (refered by man speaker)",
-      examples: [
-        {
-          falam:
-            "Kan nu cu dawr ah a um ringring ko. Nan nu teh ziang a ṭuan ṭheu?",
-        },
-      ],
-    },
-    {
-      english: "female; feminine gender",
-      examples: [{ falam: "Na ar lei mi cu a nū maw a pa saw?" }],
-    },
-    { english: "coward" },
-  ]),
+  makeEntry(
+    "entry_user_003",
+    "nu",
+    "noun",
+    [
+      {
+        english: "mother",
+        examples: [
+          {
+            falam:
+              "Nu cu insang sungih mi pawimawh bik a si. Na nu cu kan nu thawn khukhri-aw an si.",
+          },
+        ],
+      },
+      { english: "married woman" },
+      { english: "female of the species; fruit bearing tree or plant" },
+      { english: "aunty (one calls his/her mother's younger or older sister)" },
+      {
+        english: "wife (refered by man speaker)",
+        examples: [
+          {
+            falam:
+              "Kan nu cu dawr ah a um ringring ko. Nan nu teh ziang a ṭuan ṭheu?",
+          },
+        ],
+      },
+      {
+        english: "female; feminine gender",
+        examples: [{ falam: "Na ar lei mi cu a nū maw a pa saw?" }],
+      },
+      { english: "coward" },
+    ],
+    { audioId: "000004" },
+  ),
   makeEntry("entry_user_004", "nu", "verb", [{ english: "be womanly" }]),
   makeEntry("entry_user_005", "nu", "adjective", [
     {
@@ -169,6 +181,7 @@ export const placeholderEntries: DictionaryEntry[] = [
     {
       notes:
         "Compounds given without glosses: sentlung pa; pa-uithin; pa-leng; pasi; mau pa; pawl pa.",
+      audioId: "000005",
     },
   ),
   makeEntry("entry_user_009", "pa", "verb", [
@@ -184,29 +197,33 @@ export const placeholderEntries: DictionaryEntry[] = [
   makeEntry("entry_user_010", "paa", "adjective", [
     { english: "thin; slim; slender; flimsy" },
   ]),
-  makeEntry("entry_user_011", "paa", "noun", [
-    { english: "mushroom, fungus" },
-  ]),
+  makeEntry("entry_user_011", "paa", "noun", [{ english: "mushroom, fungus" }]),
   makeEntry("entry_user_012", "paa", "particle", [
     {
       english: "particle used to convey the meaning of ‘very’, ‘much’",
       examples: [{ falam: "Ka duh paa lo." }, { falam: "Mawi ka ti paa lo." }],
     },
   ]),
-  makeEntry("entry_user_013", "tha", "noun", [
-    { english: "sinew, muscle, ligament, tendon" },
-    { english: "energy, power, strength, force" },
-    { english: "tissue, muscle" },
-    {
-      english: "strength, power, might, energy, vigour",
-      examples: [
-        {
-          falam:
-            "A tha a ṭha. A tha a cat. Tha hnih an seng zo. Tha ba a sut, or sam.",
-        },
-      ],
-    },
-  ]),
+  makeEntry(
+    "entry_user_013",
+    "tha",
+    "noun",
+    [
+      { english: "sinew, muscle, ligament, tendon" },
+      { english: "energy, power, strength, force" },
+      { english: "tissue, muscle" },
+      {
+        english: "strength, power, might, energy, vigour",
+        examples: [
+          {
+            falam:
+              "A tha a ṭha. A tha a cat. Tha hnih an seng zo. Tha ba a sut, or sam.",
+          },
+        ],
+      },
+    ],
+    { audioId: "000006" },
+  ),
   makeEntry("entry_user_014", "ṭha", "adjective", [
     {
       english:
@@ -214,34 +231,41 @@ export const placeholderEntries: DictionaryEntry[] = [
     },
     { english: "good, nice, well" },
   ]),
-  makeEntry("entry_user_015", "tidai", "noun", [
-    { english: "water, cold water" },
-    {
-      english: "water, fluid, serum, juice, soup",
-      examples: [{ falam: "Tidai ka in, ti khur, tiva, etc." }],
-    },
-  ],
+  makeEntry(
+    "entry_user_015",
+    "tidai",
+    "noun",
+    [
+      { english: "water, cold water" },
+      {
+        english: "water, fluid, serum, juice, soup",
+        examples: [{ falam: "Tidai ka in, ti khur, tiva, etc." }],
+      },
+    ],
     { audioId: "000002" },
   ),
-  makeEntry("entry_user_016", "rawl", "noun", [
-    { english: "food, diet, victuals, meal, fodder, cooked rice, meat" },
-    {
-      english: "staple food",
-      examples: [
-        {
-          falam:
-            "Tuihlan pi le pu pawlih rawl cu kawhhawl le tanṭhe a si.",
-        },
-      ],
-    },
-    { english: "cooked rice" },
-    {
-      english: "voice",
-      examples: [
-        { falam: "A cau tuk ih a rawl hman a suak thei nawn lo." },
-      ],
-    },
-  ]),
+  makeEntry(
+    "entry_user_016",
+    "rawl",
+    "noun",
+    [
+      { english: "food, diet, victuals, meal, fodder, cooked rice, meat" },
+      {
+        english: "staple food",
+        examples: [
+          {
+            falam: "Tuihlan pi le pu pawlih rawl cu kawhhawl le tanṭhe a si.",
+          },
+        ],
+      },
+      { english: "cooked rice" },
+      {
+        english: "voice",
+        examples: [{ falam: "A cau tuk ih a rawl hman a suak thei nawn lo." }],
+      },
+    ],
+    { audioId: "000007" },
+  ),
   makeEntry("entry_user_017", "rawl", "verb", [
     {
       english: "hide; runaway",
@@ -268,41 +292,57 @@ export const placeholderEntries: DictionaryEntry[] = [
   makeEntry("entry_user_021", "rol", "adjective", [
     { english: "living in seclusion" },
   ]),
-  makeEntry("entry_user_022", "biakinn", "noun", [
-    {
-      english:
-        "church, chapel, sanctuary, temple, synagogue, kirk, mosque, cathedral, house of God, place of worship",
-    },
-    {
-      english: "church",
-      examples: [
-        {
-          falam:
-            "Biakinn sung na luh veten na phone kha awn lo dingin 'silent mode' ah ret aw.",
-        },
-      ],
-    },
-  ],
+  makeEntry(
+    "entry_user_022",
+    "biakinn",
+    "noun",
+    [
+      {
+        english:
+          "church, chapel, sanctuary, temple, synagogue, kirk, mosque, cathedral, house of God, place of worship",
+      },
+      {
+        english: "church",
+        examples: [
+          {
+            falam:
+              "Biakinn sung na luh veten na phone kha awn lo dingin 'silent mode' ah ret aw.",
+          },
+        ],
+      },
+    ],
     { audioId: "000001" },
   ),
-  makeEntry("entry_user_023", "naute", "noun", [
-    { english: "baby, child, infant, tiny baby, young child" },
-    {
-      english: "baby",
-      examples: [{ falam: "Nan naute cu a va duhnung ngekngi ha." }],
-    },
-  ]),
-  makeEntry("entry_user_024", "mawi", "adjective", [
-    {
-      english:
-        "pretty; good-looking; beautiful; handsome; (esp of a woman) comely; presentable",
-    },
-    {
-      english: "pretty; beautiful",
-      examples: [{ falam: "Na papar cu a mawi tuk ual." }],
-    },
-    { english: "scenic beauty; good looking" },
-  ]),
+  makeEntry(
+    "entry_user_023",
+    "naute",
+    "noun",
+    [
+      { english: "baby, child, infant, tiny baby, young child" },
+      {
+        english: "baby",
+        examples: [{ falam: "Nan naute cu a va duhnung ngekngi ha." }],
+      },
+    ],
+    { audioId: "000008" },
+  ),
+  makeEntry(
+    "entry_user_024",
+    "mawi",
+    "adjective",
+    [
+      {
+        english:
+          "pretty; good-looking; beautiful; handsome; (esp of a woman) comely; presentable",
+      },
+      {
+        english: "pretty; beautiful",
+        examples: [{ falam: "Na papar cu a mawi tuk ual." }],
+      },
+      { english: "scenic beauty; good looking" },
+    ],
+    { audioId: "000009" },
+  ),
   makeEntry("entry_user_025", "mawi", "verb", [
     {
       english: "make something beatiful",

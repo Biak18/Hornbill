@@ -4,10 +4,12 @@
 // the decision. Filenames are stable numeric ids, never Falam words
 // (AGENTS.md §14, docs/AUDIO.md §6).
 
-/** Remote base URL for downloadable recordings. Unset until Phase 5
- * distribution exists — until then every non-cached id is honestly
- * unavailable, never a dead download button. */
-export const FALAM_AUDIO_REMOTE_BASE_URL: string | undefined = undefined;
+/** Remote base URL for downloadable recordings. Draft Falam audio pack,
+ * GitHub release v-audio-1 (unverified recordings — not for redistribution
+ * yet). Until more packs exist, this single constant is the whole Phase 5
+ * distribution config: the manager builds `{base}/{audioId}.m4a`. */
+export const FALAM_AUDIO_REMOTE_BASE_URL: string | undefined =
+  "https://github.com/Biak18/Hornbill/releases/download/v-audio-1";
 
 export const FALAM_AUDIO_CACHE_SUBDIR = "falam-audio";
 

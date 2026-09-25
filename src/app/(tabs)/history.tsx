@@ -16,6 +16,7 @@ import { dictionaryRepository } from "@/repositories";
 import { useFavorites } from "@/stores/favorites";
 import { useHistory } from "@/stores/history";
 import { spacing } from "@/theme";
+import { useBottomClearance } from "@/hooks/use-bottom-clearance";
 import type { DictionaryEntry } from "@/types/dictionary";
 import {
   formatHistoryDate,
@@ -100,6 +101,7 @@ export default function HistoryScreen() {
   // The "Cleared" confirmation needs its header visible for a beat after the
   // rows disappear — otherwise it would never paint.
   const showList = rows.length > 0 || justCleared;
+  const bottomClearance = useBottomClearance();
 
   return (
     <Screen>
@@ -115,7 +117,7 @@ export default function HistoryScreen() {
       ) : (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: bottomClearance }]}
         >
           <SectionHeader
             title="Recent"

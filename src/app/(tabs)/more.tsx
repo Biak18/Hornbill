@@ -24,6 +24,7 @@ import {
   formatVerificationCounts,
   summarizeDictionary,
 } from "@/utils/dictionary-stats";
+import { useBottomClearance } from "@/hooks/use-bottom-clearance";
 import { radius, spacing, useAppColors, fontFamily } from "@/theme";
 
 const THEME_OPTIONS: readonly ThemePreference[] = [
@@ -153,12 +154,13 @@ export default function MoreScreen() {
     summary.sources.length <= 2
       ? summary.sources.join(" · ")
       : `${summary.sources.slice(0, 2).join(" · ")} · +${summary.sources.length - 2} more`;
+  const bottomClearance = useBottomClearance();
 
   return (
     <Screen>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomClearance }]}
       >
         <Text variant="pageTitle">More</Text>
         <Card style={{ backgroundColor: colors.surface }}>

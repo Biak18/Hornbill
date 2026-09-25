@@ -5,9 +5,9 @@
 // with their id). Favorite state is read once here, never inside rows.
 
 import { spacing } from "@/theme";
+import { useBottomClearance } from "@/hooks/use-bottom-clearance";
 import type { DictionaryEntry } from "@/types/dictionary";
-import { FlashList } from "@shopify/flash-list";
-import {
+import { FlashList } from "@shopify/flash-list";import {
   useCallback,
   useMemo,
   type ComponentType,
@@ -83,6 +83,13 @@ export function WordList({
     ],
   );
 
+  // Trailing clearance so the last card stops above the native tab bar
+  // (automatic insets are iOS-only; Android overlays list ends).
+  const bottomClearance = useBottomClearance();
+  const contentStyle = useMemo(
+    () => [styles.content, { paddingBottom: bottomClearance }],
+    [bottomClearance],
+  );
   // Inter-card spacing. FlashList positions cells absolutely, so `gap` in
   // the content style is ignored — ItemSeparatorComponent is the mechanism
   // that actually separates rows.
@@ -99,7 +106,7 @@ export function WordList({
       keyExtractor={keyExtractor}
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.content}
+      contentContainerStyle={contentStyle}
       style={styles.list}
       ItemSeparatorComponent={renderSeparator}
       ListHeaderComponent={ListHeaderComponent}

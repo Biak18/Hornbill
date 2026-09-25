@@ -26,14 +26,39 @@ function cacheDirectory(): Directory {
   return new Directory(Paths.cache, FALAM_AUDIO_CACHE_SUBDIR);
 }
 
+/** Ensure the cache subdirectory exists. Returns false when it cannot be
+ * created — callers then report unavailability instead of letting the
+ * download fail against a missing folder. */
+function ensureCacheDirectory(): boolean {
+  try {
+    if (!cacheDirectory().exists) {
+      Paths.cache.createDirectory(FALAM_AUDIO_CACHE_SUBDIR);
+    }
+    return true;
+  } catch (error) {
+    if (__DEV__) {
+      console.warn("[audio-manager] cache dir unavailable:", error);
+    }
+    return false;
+  }
+}
+
 function cachedFile(audioId: string): File {
   return new File(cacheDirectory(), falamCacheFilename(audioId));
 }
 
-/** True when a recording file exists in the local cache. Never throws. */
+/** True when a recording file exists in the local cache AND is non-empty.
+ * Failed downloads can leave 0-byte stubs behind; trusting bare existence
+ * wedges the entry on an unplayable file with no recovery. Non-empty files
+ * short-circuit here, empty ones fall through to re-download (idempotent
+ * overwrite heals them). Never throws. */
 export async function isAudioCached(audioId: string): Promise<boolean> {
   try {
-    return cachedFile(audioId).exists;
+    const file = cachedFile(audioId);
+    if (!file.exists) return false;
+    // Clips are ~30KB — reading the bytes for a length check is trivial.
+    const buffer = await file.arrayBuffer();
+    return buffer.byteLength > 0;
   } catch {
     return false;
   }
@@ -76,14 +101,28 @@ export async function resolveFalamAudio(
     }
   }
   if (second === "downloadable" && FALAM_AUDIO_REMOTE_BASE_URL !== undefined) {
+    if (!ensureCacheDirectory()) {
+      return { status: "unavailable", reason: "not-cached" };
+    }
+    const url = falamRemoteUrl(FALAM_AUDIO_REMOTE_BASE_URL, audioId);
     try {
-      const dir = cacheDirectory();
-      const file = await File.downloadFileAsync(
-        falamRemoteUrl(FALAM_AUDIO_REMOTE_BASE_URL, audioId),
-        dir,
+      // Explicit file destination (never the directory itself — some
+      // backends reject writing onto an existing path) with idempotent
+      // overwrite, so retries also replace partial files from failed taps.
+      const destination = new File(
+        cacheDirectory(),
+        falamCacheFilename(audioId),
       );
+      const file = await File.downloadFileAsync(url, destination, {
+        idempotent: true,
+      });
       return { status: "cached", uri: file.uri };
-    } catch {
+    } catch (error) {
+      // Surfaced in dev (Metro) so a failing host/redirect shows its real
+      // native error instead of a silent "Audio unavailable".
+      if (__DEV__) {
+        console.warn("[audio-manager] download failed:", url, error);
+      }
       return { status: "unavailable", reason: "not-cached" };
     }
   }
