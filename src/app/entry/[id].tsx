@@ -94,9 +94,13 @@ export default function EntryScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const { push } = useRouter();
   const rawId = params.id;
+  const entryId = typeof rawId === "string" ? rawId : undefined;
+  // Resolved per render (the SQLite backend materializes a fresh object each
+  // call), so the history effect below depends on the stable id string —
+  // never the object — or every re-render would rewrite history.
   const entry =
-    typeof rawId === "string"
-      ? dictionaryRepository.getEntryById(rawId)
+    entryId !== undefined
+      ? dictionaryRepository.getEntryById(entryId)
       : undefined;
   const { isFavorite, toggleFavorite } = useFavorites();
   const { record } = useHistory();
@@ -135,10 +139,10 @@ export default function EntryScreen() {
   }));
 
   useEffect(() => {
-    if (entry !== undefined) {
-      record(entry.id);
+    if (entryId !== undefined) {
+      record(entryId);
     }
-  }, [entry, record]);
+  }, [entryId, record]);
 
   const handlePressEntry = useCallback(
     (id: string) => {

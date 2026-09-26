@@ -17,6 +17,22 @@ export interface DictionaryRepository {
   /** All entries in dataset order (read-only). Used for deterministic
    * picks such as the featured word; never for full scans in search. */
   getAllEntries(): readonly DictionaryEntry[];
+  /** Total entry count WITHOUT materializing rows — the only size probe
+   * that stays cheap at 1M+ entries (AGENTS.md §24). */
+  getEntryCount(): number;
+  /** Single entry by 0-based dataset position (rowid order). Out-of-range
+   * offsets resolve to undefined, never throw. */
+  getEntryByOffset(offset: number): DictionaryEntry | undefined;
+  /** Verification buckets WITHOUT materializing rows (GROUP BY at the
+   * storage layer). Unknown statuses bucket as draft, never crash. */
+  getVerificationCounts(): {
+    verified: number;
+    reviewed: number;
+    draft: number;
+  };
+  /** Distinct source display names in first-seen order ("Unknown" for
+   * unsourced entries). Small result by construction. */
+  getSourceNames(): string[];
   /**
    * Falam → English: match `normalizedQuery` against entry search keys.
    * `normalizedQuery` must already be normalized (see search service).
@@ -85,6 +101,34 @@ export function createInMemoryDictionaryRepository(
     },
     getAllEntries() {
       return entries;
+    },
+    getEntryCount() {
+      return entries.length;
+    },
+    getEntryByOffset(offset) {
+      if (!Number.isInteger(offset) || offset < 0) return undefined;
+      return entries[offset];
+    },
+    getVerificationCounts() {
+      const counts = { verified: 0, reviewed: 0, draft: 0 };
+      for (const entry of entries) {
+        if (entry.verificationStatus === "verified") counts.verified++;
+        else if (entry.verificationStatus === "reviewed") counts.reviewed++;
+        else counts.draft++;
+      }
+      return counts;
+    },
+    getSourceNames() {
+      const names: string[] = [];
+      const seen = new Set<string>();
+      for (const entry of entries) {
+        const name = entry.source?.sourceName ?? "Unknown";
+        if (!seen.has(name)) {
+          seen.add(name);
+          names.push(name);
+        }
+      }
+      return names;
     },
     searchEntries(normalizedQuery, options) {
       if (normalizedQuery.length === 0) return [];

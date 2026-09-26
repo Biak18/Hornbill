@@ -5,7 +5,7 @@
 
 import type { DictionaryEntry } from "@/types/dictionary";
 import type { DictionaryRepository } from "@/repositories/dictionary-repository";
-import { normalizeSearchKey } from "@/utils/normalize";
+import { isBlankQuery, normalizeSearchKey } from "@/utils/normalize";
 
 export type SearchDirection = "falam-en" | "en-falam";
 
@@ -23,7 +23,7 @@ export function searchDictionary(
   const normalized = normalizeSearchKey(query);
   // Blank query → no results. Never a full-table scan: the dataset may grow
   // to 1M+ entries (AGENTS.md §24/28).
-  if (normalized.length === 0) return [];
+  if (isBlankQuery(query)) return [];
   const searchOptions = { limit: options.limit, offset: options.offset };
   if ((options.direction ?? "falam-en") === "en-falam") {
     return options.repository.searchEntriesByMeaning(

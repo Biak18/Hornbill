@@ -22,17 +22,18 @@ import { dictionaryRepository } from "@/repositories";
 import { useAudioSettings } from "@/stores/audio-settings";
 import { useFavorites } from "@/stores/favorites";
 import { radius, spacing, useAppColors } from "@/theme";
+import { DAY_MS } from "@/constants";
 import type { DictionaryEntry } from "@/types/dictionary";
 
-const DAY_MS = 86_400_000;
-
 function pickFeatured(): DictionaryEntry | undefined {
-  const entries = dictionaryRepository.getAllEntries();
-  if (entries.length === 0) {
+  // COUNT + indexed OFFSET — never materializes the table, so this stays
+  // cheap when the dataset grows to 1M+ entries (AGENTS.md §24).
+  const count = dictionaryRepository.getEntryCount();
+  if (count === 0) {
     return undefined;
   }
   const dayNumber = Math.floor(Date.now() / DAY_MS);
-  return entries[dayNumber % entries.length];
+  return dictionaryRepository.getEntryByOffset(dayNumber % count);
 }
 
 export function FeaturedCard() {

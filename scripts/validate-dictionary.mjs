@@ -104,7 +104,7 @@ function checkStringArray(label, value, where, errors) {
   }
 }
 
-function validateEntry(entry, where, seenIds, errors, warnings) {
+function validateEntry(entry, where, seenIds, errors, warnings, allowVerified) {
   if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
     errors.push(`${where}: entry must be an object`);
     return null;
@@ -232,7 +232,7 @@ function validateEntry(entry, where, seenIds, errors, warnings) {
   } else if (!VERIFICATION_STATUSES.has(status)) {
     errors.push(`${where}: unknown verificationStatus "${status}"`);
     status = "draft";
-  } else if (status !== "draft" && !options_ref.allowVerified) {
+  } else if (status !== "draft" && !allowVerified) {
     status = "draft";
     coerced = true;
     warnings.push(
@@ -243,12 +243,8 @@ function validateEntry(entry, where, seenIds, errors, warnings) {
   return { entry, searchKey: expectedKey, derivedKey, coerced, status };
 }
 
-// Set after parseArgs so validateEntry can read it without threading params.
-const options_ref = { allowVerified: false };
-
 function main() {
   const options = parseArgs(process.argv.slice(2));
-  options_ref.allowVerified = options.allowVerified;
 
   if (options.files.length === 0) {
     console.error(
@@ -288,7 +284,14 @@ function main() {
     let fileErrors = 0;
     parsed.forEach((entry, index) => {
       const before = errors.length;
-      const result = validateEntry(entry, `${file}[${index}]`, seenIds, errors, warnings);
+      const result = validateEntry(
+        entry,
+        `${file}[${index}]`,
+        seenIds,
+        errors,
+        warnings,
+        options.allowVerified,
+      );
       fileErrors += errors.length - before;
       if (result !== null) {
         if (result.derivedKey) derivedCount++;

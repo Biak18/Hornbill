@@ -84,6 +84,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   action: {
+    justifyContent: "center",
+    minHeight: 44,
+    minWidth: 44,
     padding: spacing.xs,
   },
 });

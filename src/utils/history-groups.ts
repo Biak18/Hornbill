@@ -4,14 +4,14 @@
 // for deterministic tests. Unparseable timestamps fall into Earlier —
 // never dropped, never promoted to Today.
 
+import { DAY_MS } from "@/constants";
+
 export type HistoryGroupTitle = "Today" | "Yesterday" | "Earlier";
 
 export type HistoryGroup<T> = {
   title: HistoryGroupTitle;
   items: T[];
 };
-
-const DAY_MS = 86_400_000;
 
 function startOfLocalDay(date: Date): number {
   const day = new Date(date);

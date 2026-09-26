@@ -17,8 +17,7 @@ import {
   recordHistoryEntry,
   type HistoryItem,
 } from "@/database/user-data";
-
-const MAX_HISTORY = 50;
+import { MAX_HISTORY } from "@/constants";
 
 export type HistoryEntry = HistoryItem;
 

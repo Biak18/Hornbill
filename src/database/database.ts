@@ -12,7 +12,7 @@
 // - favorites / history: entry-ID references only, offline (ARCHITECTURE §6-7).
 // - settings: tiny key-value store for theme + audio preferences.
 //
-// Seed: the user-contributed DRAFT wordlist (src/mocks/placeholderEntries,
+// Seed: the user-contributed DRAFT wordlist (src/data/placeholderEntries,
 // verificationStatus "draft", provenance preserved per-row in `source`),
 // then validated production imports (src/data/production.json, written by
 // `node scripts/validate-dictionary.mjs --emit`). Both seed with
@@ -22,7 +22,7 @@
 // deliberately simple step before it.
 
 import { openDatabaseSync, type SQLiteDatabase } from "expo-sqlite";
-import { placeholderEntries } from "@/mocks/placeholderEntries";
+import { placeholderEntries } from "@/data/placeholderEntries";
 import productionSeedJson from "@/data/production.json";
 import { normalizeSearchKey } from "@/utils/normalize";
 import type { DictionaryEntry } from "@/types/dictionary";

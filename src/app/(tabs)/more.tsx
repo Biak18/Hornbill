@@ -22,7 +22,7 @@ import {
 } from "@/stores/theme-preference";
 import {
   formatVerificationCounts,
-  summarizeDictionary,
+  type DictionarySummary,
 } from "@/utils/dictionary-stats";
 import { useBottomClearance } from "@/hooks/use-bottom-clearance";
 import { radius, spacing, useAppColors, fontFamily } from "@/theme";
@@ -143,10 +143,19 @@ export default function MoreScreen() {
     setFalamAudioEnabled,
   } = useAudioSettings();
 
-  // Live dataset facts for the Data card: real counts and source names from
-  // the repository, never hardcoded. Recomputed when the screen mounts.
+  // Live dataset facts for the Data card: counts and source names come from
+  // indexed repository queries (COUNT/GROUP BY/DISTINCT shape) — the table
+  // itself is never materialized, so this stays cheap at 1M+ entries.
+  // Recomputed when the screen mounts; the dataset is static per install.
   const summary = useMemo(
-    () => summarizeDictionary(dictionaryRepository.getAllEntries()),
+    (): DictionarySummary => {
+      const counts = dictionaryRepository.getVerificationCounts();
+      return {
+        total: counts.verified + counts.reviewed + counts.draft,
+        ...counts,
+        sources: dictionaryRepository.getSourceNames(),
+      };
+    },
     [],
   );
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";

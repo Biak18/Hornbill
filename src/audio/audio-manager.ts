@@ -7,6 +7,8 @@
 // deliberately — opening an entry must not spend mobile data silently.
 // UI components use `useFalamAudio()` / `downloadFalamAudio()` and never
 // touch expo-file-system or construct storage URLs (AGENTS.md §27).
+// Platform note: where the filesystem has no app cache (notably web),
+// every check degrades to honest `unavailable` — never a crash.
 
 import { useCallback, useEffect, useState } from "react";
 import { Directory, File, Paths } from "expo-file-system";

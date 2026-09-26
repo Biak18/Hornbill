@@ -181,6 +181,63 @@ export function createSqliteDictionaryRepository(
       );
       return rows.map(mapRowToEntry);
     },
+    getEntryCount() {
+      const row = db.getFirstSync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM entries",
+      );
+      return row?.count ?? 0;
+    },
+    getEntryByOffset(offset: number) {
+      if (!Number.isInteger(offset) || offset < 0) return undefined;
+      const row = db.getFirstSync<EntryRow>(
+        `SELECT ${ENTRY_COLUMNS} FROM entries ORDER BY rowid LIMIT 1 OFFSET ?`,
+        [offset],
+      );
+      return row === null ? undefined : mapRowToEntry(row);
+    },
+    getVerificationCounts() {
+      const rows = db.getAllSync<{ verificationStatus: string; count: number }>(
+        "SELECT verificationStatus, COUNT(*) AS count FROM entries GROUP BY verificationStatus",
+      );
+      const counts = { verified: 0, reviewed: 0, draft: 0 };
+      for (const row of rows) {
+        if (row.verificationStatus === "verified") counts.verified = row.count;
+        else if (row.verificationStatus === "reviewed")
+          counts.reviewed = row.count;
+        else counts.draft += row.count;
+      }
+      return counts;
+    },
+    getSourceNames() {
+      const rows = db.getAllSync<{ source: string | null }>(
+        "SELECT source FROM entries ORDER BY rowid",
+      );
+      const names: string[] = [];
+      const seen = new Set<string>();
+      for (const row of rows) {
+        let name = "Unknown";
+        if (row.source !== null) {
+          try {
+            const parsed = JSON.parse(row.source) as {
+              sourceName?: unknown;
+            };
+            if (
+              typeof parsed.sourceName === "string" &&
+              parsed.sourceName.length > 0
+            ) {
+              name = parsed.sourceName;
+            }
+          } catch {
+            // Malformed source JSON counts as Unknown, never crashes.
+          }
+        }
+        if (!seen.has(name)) {
+          seen.add(name);
+          names.push(name);
+        }
+      }
+      return names;
+    },
     searchEntries(normalizedQuery, options) {
       return searchByKey(db, normalizedQuery, options);
     },

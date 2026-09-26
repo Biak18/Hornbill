@@ -286,7 +286,7 @@ export default function SearchScreen() {
         {searchingEnglish ? null : (
           <View style={styles.diacriticRow}>
             <Text variant="labelSm" tone="faint">
-              Tones:
+              Diacritics:
             </Text>
             {DIACRITICS.map((mark) => (
               <PressableScale
@@ -383,6 +383,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   diacriticKey: {
+    // 44px minimum touch target (Design §21): visual size stays compact,
+    // the target does not.
+    minHeight: 44,
+    justifyContent: "center",
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },

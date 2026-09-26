@@ -77,7 +77,6 @@ const styles = StyleSheet.create({
   action: {
     borderRadius: radius.full,
     borderCurve: "continuous",
-    marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },

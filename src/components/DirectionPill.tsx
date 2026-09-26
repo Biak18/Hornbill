@@ -28,7 +28,9 @@ export const DirectionPill = memo(function DirectionPill({
   const targetLabel = falamFirst ? "English" : "Falam";
 
   const handleSwap = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Haptics are unsupported on some platforms (web) — a rejection here
+    // must never break the direction swap.
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
     onDirectionChange(falamFirst ? "en-falam" : "falam-en");
   }, [falamFirst, onDirectionChange]);
 

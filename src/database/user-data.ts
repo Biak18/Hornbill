@@ -6,13 +6,7 @@
 // tables hold at most tens of small rows.
 
 import { db } from "./database";
-
-const MAX_HISTORY = 50;
-
-/** Favorite IDs in the order they were saved (matches prior Set behavior). */
-export function loadFavoriteIds(): string[] {
-  return loadFavoritesWithTimes().map((item) => item.entryId);
-}
+import { MAX_HISTORY } from "@/constants";
 
 export type FavoriteItem = {
   entryId: string;
@@ -37,11 +31,6 @@ export function insertFavorite(entryId: string): void {
 
 export function deleteFavorite(entryId: string): void {
   db.runSync("DELETE FROM favorites WHERE entryId = ?", [entryId]);
-}
-
-/** History IDs, most-recent-first, capped (matches prior store behavior). */
-export function loadHistoryIds(): string[] {
-  return loadHistoryWithTimes().map((item) => item.entryId);
 }
 
 export type HistoryItem = {

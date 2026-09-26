@@ -107,21 +107,32 @@ export async function speakEnglish(
       text: trimmed.slice(0, 60),
     });
   }
-  Speech.speak(trimmed, {
-    // Full BCP-47 tag: strict OEM engines may ignore the bare "en" that
-    // Google TTS on emulators accepts.
-    language: "en-US",
-    ...(voice !== undefined ? { voice } : {}),
-    onStart: callbacks?.onStart,
-    onDone: callbacks?.onDone,
-    onStopped: callbacks?.onStopped,
-    onError: (error) => {
-      if (__DEV__) {
-        console.warn("[speakEnglish] TTS error:", error?.message ?? error);
-      }
-      callbacks?.onError?.(error);
-    },
-  });
+  try {
+    Speech.speak(trimmed, {
+      // Full BCP-47 tag: strict OEM engines may ignore the bare "en" that
+      // Google TTS on emulators accepts.
+      language: "en-US",
+      ...(voice !== undefined ? { voice } : {}),
+      onStart: callbacks?.onStart,
+      onDone: callbacks?.onDone,
+      onStopped: callbacks?.onStopped,
+      onError: (error) => {
+        if (__DEV__) {
+          console.warn("[speakEnglish] TTS error:", error?.message ?? error);
+        }
+        callbacks?.onError?.(error);
+      },
+    });
+  } catch (error) {
+    // A synchronous throw (unsupported engine, bad state) must surface as a
+    // normal speech failure — callers `void` this promise, so an unhandled
+    // rejection would otherwise buzz LogBox with no retry UI.
+    const failure = error instanceof Error ? error : new Error(String(error));
+    if (__DEV__) {
+      console.warn("[speakEnglish] TTS error:", failure.message);
+    }
+    callbacks?.onError?.(failure);
+  }
 }
 
 /** Interrupt English speech and clear the queue. Safe to call when idle. */

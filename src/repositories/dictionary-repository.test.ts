@@ -146,3 +146,49 @@ describe("getEntryById / getAllEntries", () => {
     ]);
   });
 });
+
+describe("getEntryCount / getEntryByOffset", () => {
+  it("counts without materializing and resolves by position", () => {
+    const repo = createInMemoryDictionaryRepository(seed);
+    expect(repo.getEntryCount()).toBe(4);
+    expect(repo.getEntryByOffset(0)?.id).toBe("t_exact");
+    expect(repo.getEntryByOffset(3)?.id).toBe("t_multi");
+  });
+
+  it("resolves out-of-range offsets to undefined, never throws", () => {
+    const repo = createInMemoryDictionaryRepository(seed);
+    expect(repo.getEntryByOffset(4)).toBeUndefined();
+    expect(repo.getEntryByOffset(-1)).toBeUndefined();
+    expect(
+      repo.getEntryByOffset(Number.NaN as unknown as number),
+    ).toBeUndefined();
+  });
+
+  it("counts an empty dataset as zero", () => {
+    const repo = createInMemoryDictionaryRepository([]);
+    expect(repo.getEntryCount()).toBe(0);
+    expect(repo.getEntryByOffset(0)).toBeUndefined();
+  });
+});
+
+describe("getVerificationCounts / getSourceNames", () => {
+  it("buckets statuses and dedupes sources in first-seen order", () => {
+    const repo = createInMemoryDictionaryRepository([
+      mockEntry("s_1", "MOCK-s1", ["mock one"], {
+        verificationStatus: "verified",
+        source: { sourceId: "a", sourceName: "Mock source A" },
+      }),
+      mockEntry("s_2", "MOCK-s2", ["mock two"], {
+        verificationStatus: "reviewed",
+        source: { sourceId: "a", sourceName: "Mock source A" },
+      }),
+      mockEntry("s_3", "MOCK-s3", ["mock three"]),
+    ]);
+    expect(repo.getVerificationCounts()).toEqual({
+      verified: 1,
+      reviewed: 1,
+      draft: 1,
+    });
+    expect(repo.getSourceNames()).toEqual(["Mock source A", "Unknown"]);
+  });
+});

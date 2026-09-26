@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "code-review-react-native": {
+      "source": "talsec/Free-RASP-ReactNative",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/code-review-react-native/SKILL.md",
+      "computedHash": "59dbfcd51406755ee2c7e790b05424a223c00e07886332624c51b07772bb1b61"
+    },
     "eas-app-stores": {
       "source": "expo/skills",
       "sourceType": "github",
