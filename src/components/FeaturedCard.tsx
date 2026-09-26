@@ -11,9 +11,10 @@ import { Pressable as GesturePressable } from "react-native-gesture-handler";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNetworkState } from "expo-network";
 import { useRouter } from "expo-router";
-import { useFalamAudioSource } from "@/audio/audio-manager";
+import { useFalamAudio } from "@/audio/audio-manager";
 import { AudioButton } from "./AudioButton";
 import { Chip } from "./Chip";
+import { FalamDownloadButton } from "./FalamDownloadButton";
 import { IconButton } from "./IconButton";
 import { Text } from "./Text";
 import { WaveBar } from "./WaveBar";
@@ -47,7 +48,11 @@ export function FeaturedCard() {
   // the early return below. Inconclusive connectivity never blocks bundled
   // playback.
   const { isConnected } = useNetworkState();
-  const falamAudio = useFalamAudioSource(entry?.audioId, isConnected !== false);
+  const {
+    audio: falamAudio,
+    downloading: falamDownloading,
+    download: downloadFalam,
+  } = useFalamAudio(entry?.audioId, isConnected !== false);
 
   const handlePlayingChange = useCallback((next: boolean) => {
     setAudioPlaying(next);
@@ -136,13 +141,19 @@ export function FeaturedCard() {
               onPlayingChange={handlePlayingChange}
             />
           </View>
+        ) : falamAudio.status === "downloadable" &&
+          falamAudioEnabled &&
+          !falamDownloading ? (
+          <View onTouchStart={markInnerPress}>
+            <FalamDownloadButton onPress={downloadFalam} />
+          </View>
         ) : (
           <View style={[styles.audioNote, { backgroundColor: colors.surface2 }]}>
             <MaterialIcons name="volume-off" size={16} color={colors.muted} />
             <Text variant="labelSm" tone="secondary" style={styles.audioNoteText}>
               {!falamAudioEnabled
                 ? "Recordings off"
-                : falamAudio.status === "checking"
+                : falamDownloading || falamAudio.status === "checking"
                   ? "Preparing audio…"
                   : falamAudio.status === "unavailable" &&
                       falamAudio.reason === "offline"

@@ -8,11 +8,12 @@
 // motion derives from it via transform/opacity only; PressableScale chips;
 // automatic scroll insets; ternary-with-null; strings in Text.
 
-import { useFalamAudioSource } from "@/audio/audio-manager";
+import { useFalamAudio } from "@/audio/audio-manager";
 import { AudioButton } from "@/components/AudioButton";
 import { BackRow } from "@/components/BackRow";
 import { Card, CardBody } from "@/components/Card";
 import { EnglishAudioButton } from "@/components/EnglishAudioButton";
+import { FalamDownloadButton } from "@/components/FalamDownloadButton";
 import { PressableScale } from "@/components/PressableScale";
 import { Screen } from "@/components/Screen";
 import { Text } from "@/components/Text";
@@ -102,7 +103,11 @@ export default function EntryScreen() {
   const { falamAudioEnabled } = useAudioSettings();
   const { isConnected } = useNetworkState();
   // Inconclusive connectivity never blocks bundled playback.
-  const falamAudio = useFalamAudioSource(entry?.audioId, isConnected !== false);
+  const {
+    audio: falamAudio,
+    downloading: falamDownloading,
+    download: downloadFalam,
+  } = useFalamAudio(entry?.audioId, isConnected !== false);
   // No tab bar on this pushed screen — clear the system gesture bar only.
   const bottomClearance = useBottomClearance(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
@@ -260,6 +265,10 @@ export default function EntryScreen() {
                   source={falamAudio.source}
                   onPlayingChange={handlePlayingChange}
                 />
+              ) : falamAudio.status === "downloadable" &&
+                falamAudioEnabled &&
+                !falamDownloading ? (
+                <FalamDownloadButton onPress={downloadFalam} />
               ) : (
                 <View style={styles.audioNote}>
                   <MaterialIcons
@@ -269,8 +278,8 @@ export default function EntryScreen() {
                   />
                   <Text variant="label" tone="secondary" style={styles.audioNoteText}>
                     {!falamAudioEnabled
-                      ? "Recordings off,enable in More → Audio"
-                      : falamAudio.status === "checking"
+                      ? "Recordings off — enable in More → Audio"
+                      : falamDownloading || falamAudio.status === "checking"
                         ? "Preparing audio…"
                         : falamAudio.status === "unavailable" &&
                             falamAudio.reason === "offline"

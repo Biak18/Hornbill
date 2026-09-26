@@ -1,10 +1,14 @@
 // Falam audio manager — storage layer between entries and playback
 // (docs/ARCHITECTURE.md §8, docs/AUDIO.md §10-11):
-// Entry → manager → local cache? → play / download → cache → play.
-// UI components use `useFalamAudioSource()` and never touch expo-file-system
-// or construct storage URLs themselves (AGENTS.md §27).
+// Entry → manager → local cache? → download (explicit tap only) → cache → play.
+//
+// Downloads NEVER start on their own: resolving an id only reports
+// `downloadable`, and the UI renders a download button the user taps
+// deliberately — opening an entry must not spend mobile data silently.
+// UI components use `useFalamAudio()` / `downloadFalamAudio()` and never
+// touch expo-file-system or construct storage URLs (AGENTS.md §27).
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Directory, File, Paths } from "expo-file-system";
 import { getFalamAudioSource } from "./audio-files";
 import {
@@ -20,10 +24,39 @@ export type FalamAudioState =
   | { status: "idle" }
   | { status: "checking" }
   | { status: "ready"; source: number | string }
+  | { status: "downloadable" }
   | { status: "unavailable"; reason: FalamAudioUnavailableReason };
 
 function cacheDirectory(): Directory {
   return new Directory(Paths.cache, FALAM_AUDIO_CACHE_SUBDIR);
+}
+
+// Cache-change broadcast: a download on one screen (entry) must flip every
+// other mounted audio hook (featured card) from `downloadable` to `ready`.
+// Without this, the card keeps showing "Download audio" for a file that is
+// already cached.
+type CacheListener = () => void;
+
+const cacheListeners = new Set<CacheListener>();
+
+export function notifyAudioCacheChanged(): void {
+  for (const listener of [...cacheListeners]) {
+    listener();
+  }
+}
+
+function useCacheEpoch(): number {
+  const [epoch, setEpoch] = useState(0);
+  useEffect(() => {
+    const listener: CacheListener = () => {
+      setEpoch((value) => value + 1);
+    };
+    cacheListeners.add(listener);
+    return () => {
+      cacheListeners.delete(listener);
+    };
+  }, []);
+  return epoch;
 }
 
 /** Ensure the cache subdirectory exists. Returns false when it cannot be
@@ -47,8 +80,7 @@ function cachedFile(audioId: string): File {
   return new File(cacheDirectory(), falamCacheFilename(audioId));
 }
 
-/** True when a recording file exists in the local cache AND is non-empty.
- * Failed downloads can leave 0-byte stubs behind; trusting bare existence
+/** True when a recording file exists in the local cache AND is non-empty. * Failed downloads can leave 0-byte stubs behind; trusting bare existence
  * wedges the entry on an unplayable file with no recovery. Non-empty files
  * short-circuit here, empty ones fall through to re-download (idempotent
  * overwrite heals them). Never throws. */
@@ -67,13 +99,14 @@ export async function isAudioCached(audioId: string): Promise<boolean> {
 export type FalamAudioResolution =
   | { status: "bundled"; source: number }
   | { status: "cached"; uri: string }
+  | { status: "downloadable"; url: string }
   | { status: "unavailable"; reason: FalamAudioUnavailableReason };
 
 /**
- * Resolve an audio id to a playable source. Downloads when online with a
- * configured remote (cache → play); otherwise reports honestly. The bundled
- * registry is checked first so offline playback keeps working with zero
- * network. Never throws — failures resolve to `unavailable`.
+ * Resolve an audio id WITHOUT downloading: bundled and cached ids return a
+ * playable source; anything else reports `downloadable` (with its URL) or
+ * `unavailable`. The bundled registry is checked first so offline playback
+ * keeps working with zero network. Never throws.
  */
 export async function resolveFalamAudio(
   audioId: string,
@@ -101,30 +134,10 @@ export async function resolveFalamAudio(
     }
   }
   if (second === "downloadable" && FALAM_AUDIO_REMOTE_BASE_URL !== undefined) {
-    if (!ensureCacheDirectory()) {
-      return { status: "unavailable", reason: "not-cached" };
-    }
-    const url = falamRemoteUrl(FALAM_AUDIO_REMOTE_BASE_URL, audioId);
-    try {
-      // Explicit file destination (never the directory itself — some
-      // backends reject writing onto an existing path) with idempotent
-      // overwrite, so retries also replace partial files from failed taps.
-      const destination = new File(
-        cacheDirectory(),
-        falamCacheFilename(audioId),
-      );
-      const file = await File.downloadFileAsync(url, destination, {
-        idempotent: true,
-      });
-      return { status: "cached", uri: file.uri };
-    } catch (error) {
-      // Surfaced in dev (Metro) so a failing host/redirect shows its real
-      // native error instead of a silent "Audio unavailable".
-      if (__DEV__) {
-        console.warn("[audio-manager] download failed:", url, error);
-      }
-      return { status: "unavailable", reason: "not-cached" };
-    }
+    return {
+      status: "downloadable",
+      url: falamRemoteUrl(FALAM_AUDIO_REMOTE_BASE_URL, audioId),
+    };
   }
   if (second === "offline") {
     return { status: "unavailable", reason: "offline" };
@@ -133,25 +146,65 @@ export async function resolveFalamAudio(
 }
 
 /**
- * Reactive playback source for an entry's audio id. `online` should reflect
- * current connectivity (treat unknown as online — never block bundled
- * playback on an inconclusive network read).
+ * Download a recording into the local cache. Called ONLY from an explicit
+ * user tap (download button) — never during resolution, never on screen
+ * open. Idempotent overwrite heals partial files from failed attempts.
+ * Returns true when the file is now cached and playable.
+ */
+export async function downloadFalamAudio(audioId: string): Promise<boolean> {
+  if (FALAM_AUDIO_REMOTE_BASE_URL === undefined) return false;
+  if (!ensureCacheDirectory()) return false;
+  const url = falamRemoteUrl(FALAM_AUDIO_REMOTE_BASE_URL, audioId);
+  try {
+    const destination = new File(
+      cacheDirectory(),
+      falamCacheFilename(audioId),
+    );
+    await File.downloadFileAsync(url, destination, { idempotent: true });
+    const cached = await isAudioCached(audioId);
+    if (cached) {
+      notifyAudioCacheChanged();
+    }
+    return cached;
+  } catch (error) {
+    // Surfaced in dev (Metro) so a failing host/redirect shows its real
+    // native error instead of a silent "Audio unavailable".
+    if (__DEV__) {
+      console.warn("[audio-manager] download failed:", url, error);
+    }
+    return false;
+  }
+}
+
+/**
+ * Reactive audio state for an entry's audio id, plus an explicit download
+ * action. `online` should reflect current connectivity (treat unknown as
+ * online — never block bundled playback on an inconclusive network read).
  *
  * "checking"/"idle" are derived during render, not stored: the only state
- * update lives in the async resolution callback, which keeps the
- * set-state-in-effect lint clean and avoids a stale "ready" flashing for a
- * previous id.
+ * updates live in async callbacks, which keeps the set-state-in-effect lint
+ * clean and avoids a stale "ready" flashing for a previous id.
  */
-export function useFalamAudioSource(
+export function useFalamAudio(
   audioId: string | undefined,
   online: boolean,
-): FalamAudioState {
+): {
+  audio: FalamAudioState;
+  downloading: boolean;
+  download: () => Promise<void>;
+} {
   const [resolved, setResolved] = useState<{
     key: string;
-    outcome: Extract<FalamAudioState, { status: "ready" | "unavailable" }>;
+    outcome: Extract<
+      FalamAudioState,
+      { status: "ready" | "downloadable" | "unavailable" }
+    >;
   } | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [epoch, setEpoch] = useState(0);
+  const cacheEpoch = useCacheEpoch();
 
-  const key = `${audioId ?? "none"}|${online ? "online" : "offline"}`;
+  const key = `${audioId ?? "none"}|${online ? "online" : "offline"}|${epoch}|${cacheEpoch}`;
   useEffect(() => {
     if (audioId === undefined) return;
     let live = true;
@@ -167,6 +220,8 @@ export function useFalamAudioSource(
           key,
           outcome: { status: "ready", source: resolution.uri },
         });
+      } else if (resolution.status === "downloadable") {
+        setResolved({ key, outcome: { status: "downloadable" } });
       } else {
         setResolved({
           key,
@@ -179,7 +234,24 @@ export function useFalamAudioSource(
     };
   }, [audioId, online, key]);
 
-  if (audioId === undefined) return { status: "idle" };
-  if (resolved !== null && resolved.key === key) return resolved.outcome;
-  return { status: "checking" };
+  // Explicit user tap only. Re-resolution afterwards picks up the cached
+  // file (or surfaces the failure) — nothing downloads implicitly.
+  const download = useCallback(async () => {
+    if (audioId === undefined) return;
+    setDownloading(true);
+    try {
+      await downloadFalamAudio(audioId);
+    } finally {
+      setDownloading(false);
+      setEpoch((value) => value + 1);
+    }
+  }, [audioId]);
+
+  if (audioId === undefined) {
+    return { audio: { status: "idle" }, downloading: false, download };
+  }
+  if (resolved !== null && resolved.key === key) {
+    return { audio: resolved.outcome, downloading, download };
+  }
+  return { audio: { status: "checking" }, downloading, download };
 }
